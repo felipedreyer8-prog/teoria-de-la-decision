@@ -10,7 +10,7 @@ Apuntes, ejemplos y herramientas en Python para la asignatura de **Teoría de la
 | [`src/decision/`](src/decision/) | Implementación de criterios de decisión |
 | [`ejemplos/`](ejemplos/) | Problemas resueltos |
 | [`tests/`](tests/) | Pruebas automáticas |
-| [`video-neuroliderazgo/`](video-neuroliderazgo/) | Guion y prompts del video de neuroliderazgo (Higgsfield) |
+| [`video-neuroliderazgo/`](video-neuroliderazgo/) | Video final de neuroliderazgo: motor 3D, avatar, voz, música y guion |
 
 ## Temas
 

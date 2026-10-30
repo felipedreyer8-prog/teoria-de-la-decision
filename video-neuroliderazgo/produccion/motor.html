@@ -1,0 +1,929 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Motor 3D · Neuroliderazgo</title>
+<link rel="stylesheet" href="vendor/fonts/local.css">
+<style>
+:root {
+  --ink: #0B1524; --paper: #EDEFF2; --brass: #C8A35A; --slate: #8796AB; --threat: #D0603F; --reward: #62A57D;
+  --serif: "Instrument Serif", "Times New Roman", serif;
+  --sans: "Schibsted Grotesk", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #000; overflow: hidden; }
+#wrap { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #04070c; }
+#gl { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: block; }
+#stage { position: absolute; inset: 0; color: var(--paper); font-family: var(--sans); }
+.scene { position: absolute; inset: 0; opacity: 0; visibility: hidden; }
+.scene > * { position: absolute; }
+[data-in] { opacity: 0; will-change: opacity, transform; }
+.fill[data-in] { opacity: 1; }
+.line { white-space: nowrap; }
+.row { display: flex; gap: 24px; align-items: baseline; white-space: nowrap; }
+.row > span { display: inline-block; }
+
+.eyebrow { font: 500 21px/1 var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--brass); text-shadow: 0 2px 18px rgba(0,0,0,.75); }
+.eyebrow.threat { color: var(--threat); }
+.h-xl { font: 400 104px/1 var(--serif); letter-spacing: -.015em; text-shadow: 0 6px 40px rgba(0,0,0,.6); }
+.h-l { font: 400 86px/1.02 var(--serif); letter-spacing: -.01em; text-shadow: 0 6px 40px rgba(0,0,0,.6); }
+.h-m { font: 400 60px/1.1 var(--serif); text-shadow: 0 4px 30px rgba(0,0,0,.6); }
+em { font-style: italic; }
+.h-xl em, .h-l em, .h-m em { color: var(--slate); }
+.h-xl em.b, .h-l em.b, .h-m em.b, em.b { color: var(--brass); }
+em.t { color: var(--threat); }
+em.r { color: var(--reward); }
+.para { font: 400 34px/1.4 var(--sans); color: #C4CDD9; text-shadow: 0 2px 20px rgba(0,0,0,.85); }
+.hl { color: var(--paper); font-weight: 600; }
+.rule { height: 2px; background: var(--brass); box-shadow: 0 0 18px rgba(200,163,90,.7); }
+
+.lt { display: flex; gap: 26px; align-items: stretch; height: 92px; }
+.lt-bar { width: 6px; background: var(--brass); box-shadow: 0 0 18px rgba(200,163,90,.7); }
+.lt-text { display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+.lt-text b { font: 600 32px/1.1 var(--sans); text-shadow: 0 2px 16px rgba(0,0,0,.8); }
+.lt-text span { font: 400 19px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--slate); }
+
+.tag3d { left: 0; top: 0; will-change: transform; }
+.tag3d .off { position: absolute; left: 0; top: 0; transform: translate(var(--dx, 18px), var(--dy, -100%)); }
+.lab { white-space: nowrap; font: 500 18px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: rgba(237,239,242,.85); padding: 9px 0 9px 14px; border-left: 2px solid var(--brass); text-shadow: 0 2px 14px rgba(0,0,0,.85); display: flex; gap: 14px; align-items: center; }
+.lab.threat { border-color: var(--threat); color: #F3B7A5; }
+.lab .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--threat); box-shadow: 0 0 12px var(--threat); }
+.wave { display: flex; align-items: center; gap: 4px; height: 30px; }
+.wave i { width: 4px; height: 4px; background: var(--brass); border-radius: 2px; }
+.quote { font: italic 400 46px/1.1 var(--serif); white-space: nowrap; text-shadow: 0 3px 24px rgba(0,0,0,.9); }
+.card { display: grid; grid-template-columns: auto auto; column-gap: 16px; align-items: baseline; white-space: nowrap; text-shadow: 0 3px 24px rgba(0,0,0,.9); }
+.card i { font: italic 400 76px/0.9 var(--serif); color: var(--brass); grid-row: span 2; }
+.card b { font: 600 30px/1.15 var(--sans); }
+.card span { font: 400 21px/1.3 var(--sans); color: #AEB9C8; }
+.legend { font: 500 19px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--slate); white-space: nowrap; }
+.legend b { color: var(--brass); font-weight: 500; }
+
+.caps { display: flex; flex-direction: column; gap: 30px; width: 760px; }
+.cap { display: grid; grid-template-columns: 74px 1fr; align-items: baseline; text-shadow: 0 2px 20px rgba(0,0,0,.85); }
+.cap i { font: 500 22px/1 var(--mono); color: var(--brass); font-style: normal; }
+.cap b { font: 600 38px/1.15 var(--sans); display: block; }
+.cap span { font: 400 26px/1.3 var(--sans); color: #AEB9C8; display: block; margin-top: 4px; }
+.cap.threat i { color: var(--threat); }
+
+.rewind { inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: rgba(4,7,12,.3); opacity: 0; }
+.rewind b { font: 500 132px/1 var(--mono); text-shadow: 0 0 34px rgba(237,239,242,.55); }
+.rewind span { font: 500 26px/1 var(--mono); letter-spacing: .24em; opacity: .85; }
+
+.mx { width: 1060px; padding: 18px 26px 22px; background: rgba(8,13,22,.58); backdrop-filter: blur(16px) saturate(1.2); border: 1px solid rgba(237,239,242,.14); border-radius: 6px; }
+.mrow { display: grid; grid-template-columns: 1.9fr 1fr 1fr 1fr 1.2fr; align-items: center; height: 104px; padding: 0 18px; font: 400 26px/1 var(--sans); position: relative; }
+.mrow.head { height: 60px; font: 500 16px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--slate); }
+.mrow b { font-weight: 600; }
+.mrow .hi { color: var(--threat); font-weight: 600; }
+.mrow .lo { color: var(--reward); font-weight: 600; }
+.mline { height: 1px; background: rgba(237,239,242,.18); }
+.pick { position: absolute; inset: 0; border: 2px solid var(--brass); background: rgba(200,163,90,.12); border-radius: 3px; }
+.pick-tag { font: 500 19px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--ink); background: var(--brass); padding: 10px 14px; white-space: nowrap; box-shadow: 0 0 30px rgba(200,163,90,.5); }
+
+.state { font: 500 21px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; padding: 12px 16px; border: 1px solid currentColor; }
+.letter { display: flex; align-items: baseline; gap: 12px; white-space: nowrap; text-shadow: 0 3px 24px rgba(0,0,0,.9); }
+.letter b { font: 400 92px/0.9 var(--serif); }
+.letter span { font: 500 23px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: #C4CDD9; }
+
+.ref { width: 540px; padding-left: 20px; border-left: 2px solid var(--brass); text-shadow: 0 3px 24px rgba(0,0,0,.9); }
+.ref i { display: block; font: 500 20px/1.2 var(--mono); color: var(--brass); font-style: normal; letter-spacing: .06em; }
+.ref b { display: block; font: 400 54px/1.02 var(--serif); margin-top: 10px; }
+.ref span { display: block; font: 400 25px/1.35 var(--sans); color: #C4CDD9; margin-top: 12px; }
+
+.blackout { inset: 0; background: #04070c; }
+.credits { inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; text-align: center; }
+.credits h3 { font: 400 92px/1 var(--serif); margin: 0; }
+.credits p { margin: 0; font: 400 30px/1.4 var(--sans); color: #AEB9C8; }
+.credits small { font: 400 18px/1.8 var(--mono); color: var(--slate); letter-spacing: .04em; max-width: 1360px; display: block; }
+.lbox { position: absolute; left: 0; width: 1920px; height: 64px; background: #000; z-index: 20; }
+#avwrap { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; visibility: hidden; }
+#avwrap canvas { position: absolute; inset: 0; width: 1280px; height: 720px; display: block; }
+#avwrap .glass { position: absolute; inset: 0; background: radial-gradient(120% 120% at 50% 45%, rgba(0,0,0,0) 58%, rgba(0,0,0,.42) 100%), linear-gradient(115deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 32%); }
+.lbox.top { top: 0; } .lbox.bot { bottom: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="gl" width="1920" height="1080"></canvas>
+  <div id="stage">
+    <div id="avwrap"><canvas id="avc" width="1280" height="720"></canvas><i class="glass"></i></div>
+
+    <!-- 1 · GANCHO (avatar con lip-sync) -->
+    <section class="scene" data-a="0" data-b="8">
+      <div class="tag3d" data-anchor="panelTL"><div class="off" style="--dx:18px;--dy:16px"><div class="lab threat fade" data-in="0.5" data-out="4.2"><span class="dot"></span>Avatar · Higgsfield<span class="wave" id="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div></div></div>
+      <div class="eyebrow rise" data-in="4.3" style="left:140px;top:318px">Neuroliderazgo · Teoría de la Decisión</div>
+      <div class="h-xl line mask" data-in="4.6" style="left:140px;top:368px">¿Por qué un equipo</div>
+      <div class="h-xl line mask" data-in="4.85" style="left:140px;top:472px">con datos</div>
+      <div class="h-xl line mask" data-in="5.1" style="left:140px;top:576px"><em class="b">decide mal?</em></div>
+      <div class="lt" style="left:140px;top:800px">
+        <i class="lt-bar wipe" data-in="5.6"></i>
+        <div class="lt-text drift" data-in="5.9"><b>Liderazgo y toma de decisiones</b><span>Trabajo final · Teoría de la Decisión</span></div>
+      </div>
+    </section>
+
+    <!-- 2 · CONCEPTO -->
+    <section class="scene" data-a="8" data-b="25">
+      <div class="eyebrow rise" data-in="0.5" data-out="11.2" style="left:140px;top:296px">Concepto</div>
+      <div class="h-xl line mask" data-in="0.9" data-out="11.2" style="left:140px;top:346px">Neuro</div>
+      <div class="h-xl line mask" data-in="1.2" data-out="11.2" style="left:140px;top:450px"><em class="b">liderazgo</em></div>
+      <div class="rule wipe" data-in="2.2" data-out="11.2" style="left:140px;top:604px;width:380px"></div>
+      <div class="para line rise" data-in="3.4" data-out="11.2" style="left:140px;top:640px">Lo que sabemos del cerebro,</div>
+      <div class="para line rise" data-in="5.0" data-out="11.2" style="left:140px;top:690px">aplicado a cómo decide un equipo</div>
+      <div class="para line rise" data-in="6.6" data-out="11.2" style="left:140px;top:740px"><span class="hl">bajo amenaza, incertidumbre o presión.</span></div>
+      <div class="tag3d" data-anchor="netRoot"><div class="off" style="--dx:-50%;--dy:calc(-100% - 30px)"><div class="lab rise" data-in="13.8">Del cerebro al equipo</div></div></div>
+    </section>
+
+    <!-- 3 · EL CASO (voz) -->
+    <section class="scene" data-a="25" data-b="43">
+      <div class="eyebrow rise" data-in="0.8" style="left:140px;top:110px">El caso</div>
+      <div class="h-l row" style="left:140px;top:150px"><span class="mask" data-in="1.0">Un sistema nuevo.</span><span class="mask" data-in="4.9"><em>Tres caminos.</em></span></div>
+      <div class="tag3d" data-anchor="end0"><div class="off" style="--dx:-50%;--dy:34px"><div class="card rise" data-in="6.6"><i>I</i><b>Migración completa</b><span>Todos cambian el mismo día</span></div></div></div>
+      <div class="tag3d" data-anchor="end1"><div class="off" style="--dx:-50%;--dy:34px"><div class="card rise" data-in="8.4"><i>II</i><b>Prueba piloto</b><span>Un grupo chico prueba primero</span></div></div></div>
+      <div class="tag3d" data-anchor="end2"><div class="off" style="--dx:-50%;--dy:34px"><div class="card rise" data-in="10.1"><i>III</i><b>Sistemas en paralelo</b><span>Conviven durante la transición</span></div></div></div>
+      <div class="legend rise" data-in="11.4" style="right:140px;top:944px"><b>■</b> Decisión &nbsp; <b>●</b> Azar &nbsp; <b>▲</b> Resultado</div>
+      <div class="h-m line rise" data-in="12.6" style="left:140px;top:916px"><em>Veamos la misma reunión, dos veces.</em></div>
+    </section>
+
+    <!-- 4 · REUNIÓN A -->
+    <section class="scene" data-a="43" data-b="68">
+      <div class="eyebrow threat rise" data-in="0.4" style="left:140px;top:120px">Reunión A</div>
+      <div class="h-l line mask" data-in="0.8" style="left:140px;top:160px">El jefe habla primero.</div>
+      <div class="caps" style="left:140px;top:420px">
+        <div class="cap threat rise" data-in="3.2"><i>01</i><div><b>Anclaje</b><span>Su opinión fija el punto de partida.</span></div></div>
+        <div class="cap threat rise" data-in="8.2"><i>02</i><div><b>Amenaza al estatus</b><span>Pensar distinto se siente como arriesgar el lugar.</span></div></div>
+        <div class="cap threat rise" data-in="12.2"><i>03</i><div><b>Silencio</b><span>Lucía ve el error en los datos y no lo dice.</span></div></div>
+        <div class="cap threat rise" data-in="18.2"><i>04</i><div><b>Falso consenso</b><span>Todos asienten. Se decide con información incompleta.</span></div></div>
+      </div>
+      <div class="tag3d" data-anchor="leader"><div class="off" style="--dx:-50%;--dy:calc(-100% - 12px)"><div class="lab threat fade" data-in="3.4" data-out="13.6">Líder</div></div></div>
+      <div class="tag3d" data-anchor="cube"><div class="off" style="--dx:28px;--dy:-50%"><div class="lab threat fade" data-in="10.2" data-out="16.2">Dato con error</div></div></div>
+      <div class="tag3d" data-anchor="lucia"><div class="off" style="--dx:34px;--dy:-50%"><div class="quote fade" data-in="16.4" data-out="22">(Lucía no lo dice)</div></div></div>
+    </section>
+
+    <!-- 5 · REUNIÓN B y MATRIZ (voz) -->
+    <section class="scene" data-a="68" data-b="94">
+      <div class="rewind" id="rewind"><b>◂◂</b><span id="rwtc">00:00:50:00</span></div>
+      <div class="eyebrow rise" data-in="2.3" data-out="15.8" style="left:140px;top:120px">Reunión B</div>
+      <div class="h-l row" style="left:140px;top:160px"><span class="mask" data-in="2.9" data-out="15.8">Mismo problema.</span><span class="mask" data-in="4.1" data-out="15.8"><em class="b">Otro contexto.</em></span></div>
+      <div class="caps" style="left:140px;top:470px">
+        <div class="cap rise" data-in="5.6" data-out="15.8"><i>01</i><div><b>Separar lo sabido de lo incierto</b></div></div>
+        <div class="cap rise" data-in="8.45" data-out="15.8"><i>02</i><div><b>Estimaciones individuales primero</b></div></div>
+        <div class="cap rise" data-in="11.2" data-out="15.8"><i>03</i><div><b>«¿Qué podría salir mal?»</b></div></div>
+      </div>
+      <div class="tag3d" data-anchor="cube"><div class="off" style="--dx:-50%;--dy:44px"><div class="quote rise" data-in="13.8" data-out="15.8">«La base tiene errores.»</div></div></div>
+      <div class="eyebrow rise" data-in="16.3" style="left:140px;top:120px">Matriz de decisión</div>
+      <div class="h-m line mask" data-in="16.5" style="left:140px;top:160px">Tres alternativas, cuatro criterios.</div>
+      <div class="mx rise" data-in="16.8" style="left:140px;top:300px">
+        <div class="mrow head rise" data-in="17.1"><span>Alternativa</span><span>Costo</span><span>Riesgo</span><span>Tiempo</span><span>Capacitación</span></div>
+        <div class="mline wipe" data-in="17.3"></div>
+        <div class="mrow rise" data-in="17.6"><b>Migración completa</b><span>Bajo</span><span class="hi">Alto</span><span>Rápido</span><span>Intensiva</span></div>
+        <div class="mline wipe" data-in="17.9"></div>
+        <div class="mrow rise" data-in="18.2"><i class="pick fade" data-in="19.6"></i><b>Prueba piloto</b><span>Medio</span><span class="lo">Bajo</span><span>Medio</span><span>Gradual</span></div>
+        <div class="mline wipe" data-in="18.5"></div>
+        <div class="mrow rise" data-in="18.8"><b>Sistemas en paralelo</b><span>Alto</span><span>Medio</span><span>Lento</span><span>Doble</span></div>
+      </div>
+      <div class="tag3d" data-anchor="end1"><div class="off" style="--dx:-50%;--dy:34px"><div class="pick-tag rise" data-in="20.1">Decisión del equipo</div></div></div>
+    </section>
+
+    <!-- 6 · SCARF -->
+    <section class="scene" data-a="94" data-b="115">
+      <div class="eyebrow rise" data-in="0.4" style="left:140px;top:110px">Modelo SCARF · Rock, 2008</div>
+      <div class="h-m mask" data-in="0.8" style="left:140px;top:150px;width:1060px">Cinco señales que el cerebro lee como <em class="t">amenaza</em> o <em class="r">recompensa</em>.</div>
+      <div class="state fade" data-in="1.6" data-out="7.4" style="right:140px;top:116px;color:var(--threat)">Reunión A</div>
+      <div class="state fade" data-in="7.8" style="right:140px;top:116px;color:var(--reward)">Reunión B</div>
+      <div class="tag3d" data-anchor="sat0"><div class="off" style="--dx:16px;--dy:-60%"><div class="letter rise" data-in="1.4"><b>S</b><span>Estatus</span></div></div></div>
+      <div class="tag3d" data-anchor="sat1"><div class="off" style="--dx:16px;--dy:-60%"><div class="letter rise" data-in="1.6"><b>C</b><span>Certidumbre</span></div></div></div>
+      <div class="tag3d" data-anchor="sat2"><div class="off" style="--dx:16px;--dy:-60%"><div class="letter rise" data-in="1.8"><b>A</b><span>Autonomía</span></div></div></div>
+      <div class="tag3d" data-anchor="sat3"><div class="off" style="--dx:16px;--dy:-60%"><div class="letter rise" data-in="2.0"><b>R</b><span>Relación</span></div></div></div>
+      <div class="tag3d" data-anchor="sat4"><div class="off" style="--dx:calc(-100% - 16px);--dy:-60%"><div class="letter rise" data-in="2.2"><b>F</b><span>Equidad</span></div></div></div>
+      <div class="h-m line rise" data-in="14.0" style="left:140px;top:842px">Eso es <em class="b">seguridad psicológica.</em></div>
+      <div class="para line rise" data-in="15.2" style="left:140px;top:920px">Poder cuestionar una idea sin cuestionar a la persona.</div>
+    </section>
+
+    <!-- 7 · MARCO TEÓRICO -->
+    <section class="scene" data-a="115" data-b="138">
+      <div class="eyebrow rise" data-in="0.4" style="left:140px;top:110px">Marco teórico</div>
+      <div class="h-m line mask" data-in="0.8" style="left:140px;top:150px">Lo que explica la materia.</div>
+      <div class="tag3d" data-anchor="col0"><div class="off" style="--dx:0px;--dy:-50%"><div class="ref rise" data-in="2.0"><i>Simon, 1955</i><b>Racionalidad limitada</b><span>Con veinte urgencias, el equipo decide con atajos.</span></div></div></div>
+      <div class="tag3d" data-anchor="col1"><div class="off" style="--dx:0px;--dy:-50%"><div class="ref rise" data-in="8.2"><i>Tversky y Kahneman, 1974 · 1979</i><b>Anclaje y aversión a la pérdida</b><span>Lo que la dirección ve como mejora, el empleado lo vive como pérdida.</span></div></div></div>
+      <div class="tag3d" data-anchor="col2"><div class="off" style="--dx:0px;--dy:-50%"><div class="ref rise" data-in="14.8"><i>Galton, 1886</i><b>Regresión a la media</b><span>Mejorar después de un reto no prueba que el castigo funcionó.</span></div></div></div>
+    </section>
+
+    <!-- 8 · ÉTICA -->
+    <section class="scene" data-a="138" data-b="153">
+      <div class="tag3d" data-anchor="eye"><div class="off" style="--dx:-50%;--dy:calc(-100% - 18px)"><div class="lab threat fade" data-in="1.4" data-out="6.6">Vigilancia</div></div></div>
+      <div class="eyebrow rise" data-in="0.6" style="left:1040px;top:290px">Límites éticos</div>
+      <div class="h-l line mask" data-in="1.0" style="left:1040px;top:336px">Entender emociones</div>
+      <div class="h-l line mask" data-in="1.3" style="left:1040px;top:424px">no da derecho</div>
+      <div class="h-l line mask" data-in="1.6" style="left:1040px;top:512px">a <em class="b">manipularlas.</em></div>
+      <div class="para rise" data-in="5.2" style="left:1040px;top:650px;width:760px">Ni a vigilar a las personas.</div>
+      <div class="para rise" data-in="8.6" style="left:1040px;top:708px;width:760px">Si hay sobrecarga, la solución es <span class="hl">cambiar cómo se trabaja.</span></div>
+    </section>
+
+    <!-- 9 · CIERRE (voz) -->
+    <section class="scene" data-a="153" data-b="180">
+      <div class="h-l line mask" data-in="1.0" data-out="7.0" style="left:140px;top:300px">Un mejor contexto</div>
+      <div class="h-m line mask" data-in="1.5" data-out="7.0" style="left:140px;top:400px">no asegura resultados perfectos,</div>
+      <div class="h-m line mask" data-in="4.6" data-out="7.0" style="left:140px;top:470px"><em class="b">pero sí decisiones más informadas.</em></div>
+      <div class="h-l line mask" data-in="7.4" data-out="16.2" style="left:140px;top:300px">El líder no solo</div>
+      <div class="h-l line mask" data-in="7.7" data-out="16.2" style="left:140px;top:388px">toma decisiones.</div>
+      <div class="h-m line mask" data-in="10.1" data-out="16.2" style="left:140px;top:500px"><em class="b">También crea el contexto</em></div>
+      <div class="h-m line mask" data-in="10.5" data-out="16.2" style="left:140px;top:566px"><em class="b">en el que su equipo decide.</em></div>
+      <div class="lt" style="left:140px;top:836px">
+        <i class="lt-bar wipe" data-in="17.9" data-out="21.0"></i>
+        <div class="lt-text drift" data-in="18.2" data-out="21.0"><b>Presentador virtual</b><span>Avatar generado con IA · Higgsfield</span></div>
+      </div>
+      <div class="blackout fade" data-in="21.4"></div>
+      <div class="credits">
+        <span class="eyebrow rise" data-in="22.0">Trabajo final</span>
+        <h3 class="rise" data-in="22.2">Teoría de la Decisión</h3>
+        <p class="rise" data-in="22.5">Neuroliderazgo y toma de decisiones · Dra. Marina Santucci</p>
+        <small class="rise" data-in="23.0">Rock (2008) · Edmondson (1999) · Simon (1955) · Tversky y Kahneman (1974) · Kahneman y Tversky (1979) · Abril Tapias (2025) · Ruiz Rodríguez (2024)</small>
+        <small class="rise" data-in="23.3">Voz: Ignacio (ElevenLabs) · Avatar: Wan 2.7 en Higgsfield · Animación 3D y música generadas por código</small>
+      </div>
+    </section>
+
+    <i class="lbox top" id="lbt"></i><i class="lbox bot" id="lbb"></i>
+  </div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/EffectComposer.js"></script>
+<script src="vendor/CopyShader.js"></script>
+<script src="vendor/ShaderPass.js"></script>
+<script src="vendor/RenderPass.js"></script>
+<script src="vendor/LuminosityHighPassShader.js"></script>
+<script src="vendor/UnrealBloomPass.js"></script>
+<script src="vendor/FXAAShader.js"></script>
+<script>
+(() => {
+'use strict';
+const W = 1920, H = 1080, FPS = 25, TOTAL = 180;
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = x => 1 - Math.pow(1 - x, 3);
+const easeQ = x => 1 - Math.pow(1 - x, 4);
+const inout = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const sm = (L, a, b) => { const k = clamp((L - a) / (b - a)); return k * k * (3 - 2 * k); };
+const lerp = (a, b, k) => a + (b - a) * k;
+const fract = x => x - Math.floor(x);
+
+const BG = 0x04070c;
+const COL = { brass: 0xC8A35A, paper: 0xEDEFF2, slate: 0x8796AB, threat: 0xD0603F, reward: 0x62A57D };
+const C = {}; for (const k in COL) C[k] = new THREE.Color(COL[k]);
+
+/* ---------- render base ---------- */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(1); renderer.setSize(W, H, false); renderer.setClearColor(BG, 1);
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(BG, 0.03);
+const camera = new THREE.PerspectiveCamera(35, W / H, 0.1, 300);
+
+const hemi = new THREE.HemisphereLight(0x33476a, 0x030405, 0.55); scene.add(hemi);
+const key = new THREE.SpotLight(0xffffff, 0, 45, 0.6, 0.7, 1.0); key.position.set(0, 11, 2); scene.add(key, key.target);
+const rim = new THREE.DirectionalLight(0x9db8e0, 0.6); rim.position.set(-5, 7, -9); scene.add(rim);
+const fill = new THREE.PointLight(0xffffff, 0, 12, 2); fill.position.set(0, 1.4, 0); scene.add(fill);
+
+let seed = 20261030; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const gauss = () => (rnd() + rnd() + rnd() - 1.5) / 1.5;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const additive = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending };
+const vsUv = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+
+/* ---------- piso ---------- */
+const floorU = { uPool: { value: V(0, 0, 4) }, uPoolCol: { value: new THREE.Color(0x1b3050) }, uPoolI: { value: 1 }, uGrid: { value: 0.55 }, uFog: { value: new THREE.Color(BG) } };
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(260, 260).rotateX(-Math.PI / 2), new THREE.ShaderMaterial({
+  uniforms: floorU, extensions: { derivatives: true },
+  vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
+  fragmentShader: `uniform vec3 uPool; uniform vec3 uPoolCol; uniform float uPoolI; uniform float uGrid; uniform vec3 uFog; varying vec3 vW;
+    float gline(vec2 p, float s){ vec2 q = p / s; vec2 g = abs(fract(q - 0.5) - 0.5) / fwidth(q); return 1.0 - min(min(g.x, g.y), 1.0); }
+    void main(){
+      vec3 base = vec3(0.020, 0.030, 0.047);
+      float d = length(vW.xz - uPool.xy);
+      float pool = exp(-pow(d / uPool.z, 2.0)) * uPoolI;
+      float g = gline(vW.xz, 1.0) * 0.32 + gline(vW.xz, 5.0) * 0.55;
+      float cd = length(vW - cameraPosition);
+      vec3 col = base + uPoolCol * pool + vec3(0.30, 0.36, 0.46) * g * uGrid * exp(-cd * 0.05) * (0.22 + pool);
+      col = mix(col, uFog, clamp(1.0 - exp(-pow(cd * 0.028, 2.0)), 0.0, 1.0));
+      gl_FragColor = vec4(col, 1.0);
+    }`
+}));
+scene.add(floor);
+function setPool(x, z, r, hex, I) { floorU.uPool.value.set(x, z, r); floorU.uPoolCol.value.setHex(hex); floorU.uPoolI.value = I; }
+
+/* ---------- polvo ---------- */
+const DN = 1500, dpos = new Float32Array(DN * 3), dsd = new Float32Array(DN);
+for (let i = 0; i < DN; i++) { dpos[i * 3] = (rnd() * 2 - 1) * 22; dpos[i * 3 + 1] = rnd() * 10; dpos[i * 3 + 2] = (rnd() * 2 - 1) * 22; dsd[i] = rnd(); }
+const dGeo = new THREE.BufferGeometry(); dGeo.setAttribute('position', new THREE.BufferAttribute(dpos, 3)); dGeo.setAttribute('aS', new THREE.BufferAttribute(dsd, 1));
+const dustU = { uT: { value: 0 }, uScale: { value: 1 } };
+const dust = new THREE.Points(dGeo, new THREE.ShaderMaterial(Object.assign({
+  uniforms: dustU,
+  vertexShader: `uniform float uT, uScale; attribute float aS; varying float vA;
+    void main(){ vec3 p = position; p.x += sin(uT * 0.05 + aS * 12.0) * 0.8; p.y += sin(uT * 0.07 + aS * 7.0) * 0.5; p.z += cos(uT * 0.06 + aS * 9.0) * 0.8;
+      vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv; float dz = -mv.z;
+      gl_PointSize = clamp((3.0 + aS * 5.0) * uScale * 5.0 / dz, 1.0, 46.0); vA = 0.22 * smoothstep(38.0, 3.0, dz) * smoothstep(0.4, 2.0, dz); }`,
+  fragmentShader: 'varying float vA; void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard; gl_FragColor = vec4(vec3(0.78, 0.84, 0.95), smoothstep(0.5, 0.0, d) * vA); }'
+}, additive)));
+dust.frustumCulled = false; scene.add(dust);
+
+/* ---------- pantalla del avatar ---------- */
+const panelG = new THREE.Group(); scene.add(panelG);
+const ph = document.createElement('canvas'); ph.width = 1280; ph.height = 720;
+{ const g = ph.getContext('2d'); const bg = g.createLinearGradient(0, 0, 0, 720); bg.addColorStop(0, '#1F2B3D'); bg.addColorStop(1, '#0A0F18'); g.fillStyle = bg; g.fillRect(0, 0, 1280, 720); }
+const pTex = new THREE.Texture(ph); pTex.minFilter = THREE.LinearFilter; pTex.generateMipmaps = false; pTex.needsUpdate = true;
+const panelU = { map: { value: pTex }, uOp: { value: 1 }, uSat: { value: 1 }, uDim: { value: 1 } };
+const panel = new THREE.Mesh(new THREE.PlaneGeometry(5.12, 2.88), new THREE.ShaderMaterial({
+  uniforms: panelU, transparent: true, vertexShader: vsUv,
+  fragmentShader: `uniform sampler2D map; uniform float uOp, uSat, uDim; varying vec2 vUv;
+    void main(){ vec3 c = texture2D(map, vUv).rgb; float l = dot(c, vec3(0.299, 0.587, 0.114)); c = mix(vec3(l), c, uSat) * uDim;
+      vec2 q = (vUv - 0.5) * vec2(1.0, 1.35); c *= 1.0 - 0.32 * dot(q, q);
+      c += smoothstep(0.22, 0.0, abs(vUv.x - (1.0 - vUv.y) * 0.55 - 0.18)) * 0.025;
+      gl_FragColor = vec4(c, uOp); }`
+}));
+panelG.add(panel);
+const pEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(5.16, 2.92)), new THREE.LineBasicMaterial({ color: COL.brass, transparent: true, opacity: 0.9 }));
+panelG.add(pEdge);
+const haloU = { uOp: { value: 1 }, uCol: { value: new THREE.Color(0x3a5a88) } };
+const halo = new THREE.Mesh(new THREE.PlaneGeometry(9.5, 6.2), new THREE.ShaderMaterial(Object.assign({
+  uniforms: haloU, vertexShader: vsUv,
+  fragmentShader: 'uniform float uOp; uniform vec3 uCol; varying vec2 vUv; void main(){ vec2 q = (vUv - 0.5) * vec2(1.0, 1.5); gl_FragColor = vec4(uCol, smoothstep(0.55, 0.0, length(q)) * 0.28 * uOp); }'
+}, additive)));
+halo.position.z = -0.12; panelG.add(halo);
+
+const AV = { imgs: [], n: 0, cur: -1 };
+async function loadAvatar() {
+  try {
+    const r = await fetch('avatar/avatar.json'); if (!r.ok) return;
+    const j = await r.json();
+    await Promise.all(Array.from({ length: j.n }, (_, i) => new Promise(res => {
+      const im = new Image(); im.onload = res; im.onerror = res; im.src = `avatar/f_${String(i + 1).padStart(3, '0')}.jpg`; AV.imgs[i] = im;
+    })));
+    AV.n = j.n;
+  } catch (e) { /* sin avatar: queda el fondo neutro */ }
+}
+// El video del avatar va en una capa 2D nítida proyectada sobre la pantalla 3D, fuera del bloom.
+const avwrap = document.getElementById('avwrap'), avctx = document.getElementById('avc').getContext('2d');
+const AVS = { on: false, sat: 1, dim: 1, op: 1 };
+function avatarFrame(i) {
+  AVS.on = true;
+  if (!AV.n) return;
+  i = Math.max(0, Math.min(AV.n - 1, i));
+  if (i === AV.cur) return;
+  AV.cur = i; avctx.drawImage(AV.imgs[i], 0, 0, 1280, 720);
+}
+function adj(m) { return [m[4] * m[8] - m[5] * m[7], m[2] * m[7] - m[1] * m[8], m[1] * m[5] - m[2] * m[4], m[5] * m[6] - m[3] * m[8], m[0] * m[8] - m[2] * m[6], m[2] * m[3] - m[0] * m[5], m[3] * m[7] - m[4] * m[6], m[1] * m[6] - m[0] * m[7], m[0] * m[4] - m[1] * m[3]]; }
+function mm(a, b) { const c = []; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { let s = 0; for (let k = 0; k < 3; k++) s += a[3 * i + k] * b[3 * k + j]; c[3 * i + j] = s; } return c; }
+function mv(m, v) { return [m[0] * v[0] + m[1] * v[1] + m[2] * v[2], m[3] * v[0] + m[4] * v[1] + m[5] * v[2], m[6] * v[0] + m[7] * v[1] + m[8] * v[2]]; }
+function basis(p) { const m = [p[0], p[2], p[4], p[1], p[3], p[5], 1, 1, 1]; const v = mv(adj(m), [p[6], p[7], 1]); return mm(m, [v[0], 0, 0, 0, v[1], 0, 0, 0, v[2]]); }
+function quadMatrix(w, h, d) {
+  const t = mm(basis(d), adj(basis([0, 0, w, 0, 0, h, w, h])));
+  for (let i = 0; i < 9; i++) t[i] /= t[8];
+  return `matrix3d(${t[0]},${t[3]},0,${t[6]},${t[1]},${t[4]},0,${t[7]},0,0,1,0,${t[2]},${t[5]},0,${t[8]})`;
+}
+const CORNERS = [[-2.56, 1.44], [2.56, 1.44], [-2.56, -1.44], [2.56, -1.44]];
+function placeAvatar() {
+  if (!panelG.visible || !AVS.on || !AV.n) { avwrap.style.visibility = 'hidden'; return; }
+  const d = []; let ok = true;
+  for (const [x, y] of CORNERS) { const v = panel.localToWorld(tv.set(x, y, 0)).project(camera); if (v.z >= 1) ok = false; d.push((v.x + 1) / 2 * W, (1 - v.y) / 2 * H); }
+  if (!ok) { avwrap.style.visibility = 'hidden'; return; }
+  avwrap.style.visibility = 'visible';
+  avwrap.style.transform = quadMatrix(1280, 720, d);
+  avwrap.style.opacity = AVS.op.toFixed(3);
+  avwrap.style.filter = `saturate(${AVS.sat.toFixed(3)}) brightness(${AVS.dim.toFixed(3)})`;
+}
+
+/* ---------- cerebro de partículas ---------- */
+const brainG = new THREE.Group(); scene.add(brainG);
+const BN = 15000;
+const pa = new Float32Array(BN * 3), pb = new Float32Array(BN * 3), pc = new Float32Array(BN * 3), pr = new Float32Array(BN * 3);
+const NODES = [[0, 1.55, 0], [-2.0, 0.35, 0.35], [0, 0.35, -0.3], [2.0, 0.35, 0.35], [-2.9, -0.85, 0.45], [-1.5, -0.85, -0.2], [-0.6, -0.85, 0.3], [0.6, -0.85, -0.3], [1.5, -0.85, 0.2], [2.9, -0.85, -0.45]];
+const NR = [0.17, 0.13, 0.13, 0.13, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11];
+const EDG = [[0, 1], [0, 2], [0, 3], [1, 4], [1, 5], [2, 6], [2, 7], [3, 8], [3, 9]];
+function brainPoint() {
+  const r = rnd(); let x, y, z;
+  const u = rnd() * 2 - 1, th = rnd() * Math.PI * 2, q = Math.sqrt(1 - u * u);
+  let dx = q * Math.cos(th), dy = u, dz = q * Math.sin(th);
+  if (r < 0.84) {
+    const s = rnd() < 0.5 ? -1 : 1;
+    if (dx * s < 0) dx *= 0.3;
+    if (dy < 0) dy *= 0.7;
+    const fold = 0.06 * Math.sin(dz * 12 + dy * 8 + s * 1.3) * Math.sin(dy * 10 - dz * 6 + dx * 3) + 0.025 * Math.sin(dx * 20 + dz * 14);
+    const sh = 1 + fold - rnd() * 0.045;
+    x = s * 0.34 + dx * 0.56 * sh; y = dy * 0.74 * sh; z = dz * 1.02 * sh;
+    if (y < -0.1 && Math.abs(z) < 0.55) x *= 1.08;
+  } else if (r < 0.93) {
+    const sh = 1 + 0.035 * Math.sin(dy * 42) - rnd() * 0.04;
+    x = dx * 0.52 * sh; y = -0.52 + dy * 0.26 * sh; z = -0.72 + dz * 0.34 * sh;
+  } else {
+    const a = rnd() * Math.PI * 2, h = rnd(), rr = 0.11 + rnd() * 0.03;
+    x = Math.cos(a) * rr; z = -0.36 - h * 0.12 + Math.sin(a) * rr; y = -0.42 - h * 0.82;
+  }
+  return [z * 1.5, y * 1.5, -x * 1.5];
+}
+for (let i = 0; i < BN; i++) {
+  let x, y, z; do { x = rnd() * 2 - 1; y = rnd() * 2 - 1; z = rnd() * 2 - 1; } while (x * x + y * y + z * z > 1);
+  pa.set([x * 7, y * 4.2 + 0.6, z * 7], i * 3);
+  pb.set(brainPoint(), i * 3);
+  if (i % 100 < 36) { const n = i % 10, rr = NR[n]; pc.set([NODES[n][0] + gauss() * rr, NODES[n][1] + gauss() * rr, NODES[n][2] + gauss() * rr], i * 3); }
+  else { const e = EDG[i % 9], u = rnd(), A = NODES[e[0]], B = NODES[e[1]]; pc.set([lerp(A[0], B[0], u) + gauss() * 0.02, lerp(A[1], B[1], u) + gauss() * 0.02, lerp(A[2], B[2], u) + gauss() * 0.02], i * 3); }
+  pr.set([rnd(), rnd(), rnd()], i * 3);
+}
+const bGeo = new THREE.BufferGeometry();
+bGeo.setAttribute('position', new THREE.BufferAttribute(pb, 3));
+bGeo.setAttribute('aA', new THREE.BufferAttribute(pa, 3)); bGeo.setAttribute('aB', new THREE.BufferAttribute(pb, 3));
+bGeo.setAttribute('aC', new THREE.BufferAttribute(pc, 3)); bGeo.setAttribute('aR', new THREE.BufferAttribute(pr, 3));
+const bU = { uT: { value: 0 }, uAB: { value: 0 }, uBC: { value: 0 }, uScale: { value: 1 }, uOp: { value: 1 }, uColA: { value: new THREE.Color(0x6c8cc0) }, uColB: { value: C.brass.clone() } };
+const bPts = new THREE.Points(bGeo, new THREE.ShaderMaterial(Object.assign({
+  uniforms: bU,
+  vertexShader: `uniform float uT, uAB, uBC, uScale; uniform vec3 uColA, uColB;
+    attribute vec3 aA; attribute vec3 aB; attribute vec3 aC; attribute vec3 aR; varying vec3 vCol; varying float vA;
+    void main(){
+      float k1 = smoothstep(0.0, 1.0, clamp(uAB * 1.4 - aR.x * 0.4, 0.0, 1.0));
+      float k2 = smoothstep(0.0, 1.0, clamp(uBC * 1.4 - aR.y * 0.4, 0.0, 1.0));
+      vec3 p = mix(mix(aA, aB, k1), aC, k2);
+      float loose = 1.0 - k1 + k2 * (1.0 - k2) * 2.0;
+      p += vec3(sin(uT * 0.7 + aR.x * 31.0), sin(uT * 0.6 + aR.y * 29.0), sin(uT * 0.8 + aR.z * 37.0)) * (0.012 + 0.35 * loose);
+      vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv;
+      float fire = pow(0.5 + 0.5 * sin(uT * 2.2 + aB.y * 3.0 + aB.z * 2.0 + aR.x * 40.0), 14.0);
+      vCol = mix(uColA, uColB, fire);
+      vA = (0.42 + 0.9 * fire) * smoothstep(45.0, 4.0, -mv.z);
+      gl_PointSize = clamp((18.0 + 26.0 * aR.z) * uScale / -mv.z, 1.0, 26.0);
+    }`,
+  fragmentShader: 'uniform float uOp; varying vec3 vCol; varying float vA; void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard; gl_FragColor = vec4(vCol, pow(1.0 - d * 2.0, 1.6) * vA * uOp); }'
+}, additive)));
+bPts.frustumCulled = false; brainG.add(bPts);
+
+const FS = 1600, idx = []; for (let k = 0; k < FS; k++) idx.push(Math.floor(rnd() * BN));
+const segs = [], deg = new Uint8Array(FS);
+outer: for (let a = 0; a < FS; a++) for (let b = a + 1; b < FS; b++) {
+  if (deg[a] >= 2) continue outer;
+  if (deg[b] >= 2) continue;
+  const i = idx[a], j = idx[b], dx = pb[i * 3] - pb[j * 3], dy = pb[i * 3 + 1] - pb[j * 3 + 1], dz = pb[i * 3 + 2] - pb[j * 3 + 2], d2 = dx * dx + dy * dy + dz * dz;
+  if (d2 < 0.09 && d2 > 0.0016) { segs.push([i, j]); deg[a]++; deg[b]++; if (segs.length >= 900) break outer; }
+}
+const fpos = new Float32Array(segs.length * 6), fT = new Float32Array(segs.length * 2), fS = new Float32Array(segs.length * 2);
+segs.forEach(([i, j], k) => { fpos.set([pb[i * 3], pb[i * 3 + 1], pb[i * 3 + 2], pb[j * 3], pb[j * 3 + 1], pb[j * 3 + 2]], k * 6); fT.set([0, 1], k * 2); const s = rnd(); fS.set([s, s], k * 2); });
+const fGeo = new THREE.BufferGeometry(); fGeo.setAttribute('position', new THREE.BufferAttribute(fpos, 3)); fGeo.setAttribute('aT', new THREE.BufferAttribute(fT, 1)); fGeo.setAttribute('aS', new THREE.BufferAttribute(fS, 1));
+const fU = { uT: { value: 0 }, uOp: { value: 0 }, uCol: { value: new THREE.Color(0x9fb7da) } };
+const fil = new THREE.LineSegments(fGeo, new THREE.ShaderMaterial(Object.assign({
+  uniforms: fU,
+  vertexShader: 'attribute float aT; attribute float aS; varying float vT; varying float vS; varying float vD; void main(){ vT = aT; vS = aS; vec4 mv = modelViewMatrix * vec4(position, 1.0); vD = -mv.z; gl_Position = projectionMatrix * mv; }',
+  fragmentShader: 'uniform float uT, uOp; uniform vec3 uCol; varying float vT; varying float vS; varying float vD; void main(){ float p = fract(uT * 0.35 + vS); float pulse = smoothstep(0.12, 0.0, abs(vT - p)); gl_FragColor = vec4(uCol * (0.6 + pulse * 1.6), (0.07 + pulse * 0.9) * uOp * smoothstep(30.0, 5.0, vD)); }'
+}, additive)));
+fil.frustumCulled = false; brainG.add(fil);
+
+/* ---------- árbol de decisión ---------- */
+const treeG = new THREE.Group(); scene.add(treeG);
+const rootG = new THREE.Group(); rootG.position.set(0, 0.75, 3.4); treeG.add(rootG);
+const rootBox = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.62, 0.62), new THREE.MeshStandardMaterial({ color: 0x0d1724, metalness: 0.5, roughness: 0.35, emissive: 0x000000 }));
+const rootEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.64, 0.64, 0.64)), new THREE.LineBasicMaterial({ color: COL.brass, transparent: true }));
+rootG.add(rootBox, rootEdge);
+const triShape = new THREE.Shape(); triShape.moveTo(0, 0.3); triShape.lineTo(0.27, -0.17); triShape.lineTo(-0.27, -0.17); triShape.lineTo(0, 0.3);
+const branches = [-3.4, 0, 3.4].map(dx => {
+  const curve = new THREE.CatmullRomCurve3([V(0, 0.75, 3.1), V(dx * 0.3, 0.75, 1.6), V(dx * 0.78, 0.75, -1.4), V(dx, 0.75, -4.6)]);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uGrow: { value: 0 }, uT: { value: 0 }, uCol: { value: C.brass.clone() }, uOp: { value: 1 } }, transparent: true, vertexShader: vsUv,
+    fragmentShader: 'uniform float uGrow, uT, uOp; uniform vec3 uCol; varying vec2 vUv; void main(){ if (vUv.x > uGrow) discard; float head = smoothstep(0.05, 0.0, uGrow - vUv.x); float pulse = smoothstep(0.86, 1.0, fract(vUv.x * 2.2 - uT * 0.4)); gl_FragColor = vec4(uCol * (0.7 + 0.9 * pulse) + vec3(1.0, 0.95, 0.85) * head * 1.2, uOp); }'
+  });
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 200, 0.034, 8, false), mat);
+  const chance = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 12, 64), new THREE.MeshBasicMaterial({ color: COL.brass, transparent: true }));
+  chance.position.copy(curve.getPointAt(0.5));
+  const tri = new THREE.Group(); tri.position.copy(curve.getPointAt(1)).add(V(0, 0.05, 0));
+  tri.add(new THREE.Mesh(new THREE.ShapeGeometry(triShape), new THREE.MeshBasicMaterial({ color: 0x0b1320, side: THREE.DoubleSide })));
+  const triEdge = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([V(0, 0.3, 0.01), V(0.27, -0.17, 0.01), V(-0.27, -0.17, 0.01)]), new THREE.LineBasicMaterial({ color: COL.brass, transparent: true }));
+  tri.add(triEdge);
+  treeG.add(tube, chance, tri);
+  return { curve, mat, chance, tri, triEdge, end: curve.getPointAt(1).clone() };
+});
+function setTree(L, starts, pick) {
+  const ra = sm(L, 1.2, 2.2);
+  rootG.scale.setScalar(Math.max(0.001, ra));
+  rootEdge.material.opacity = ra;
+  rootBox.material.emissive.setHex(COL.brass).multiplyScalar(0.08 + 0.1 * pick);
+  branches.forEach((b, k) => {
+    const g = ease(clamp((L - starts[k]) / 3.0));
+    const hi = k === 1 ? pick : 0, lo = k !== 1 ? pick : 0;
+    b.mat.uniforms.uGrow.value = g * 1.001;
+    b.mat.uniforms.uCol.value.copy(C.brass).lerp(C.slate, lo * 0.7).multiplyScalar(1 + hi * 0.8);
+    b.mat.uniforms.uOp.value = 1 - lo * 0.55;
+    b.chance.scale.setScalar(Math.max(0.001, sm(g, 0.46, 0.56)));
+    b.chance.material.color.copy(C.brass).lerp(C.slate, lo * 0.7);
+    b.chance.material.opacity = 1 - lo * 0.5;
+    b.tri.scale.setScalar(Math.max(0.001, sm(g, 0.93, 1.0) * (1 + hi * 0.35)));
+    b.triEdge.material.color.copy(C.brass).lerp(C.slate, lo * 0.7);
+  });
+}
+
+/* ---------- mesa del equipo ---------- */
+const tableG = new THREE.Group(); scene.add(tableG);
+const discMat = new THREE.MeshStandardMaterial({ color: 0x05080e, metalness: 0.2, roughness: 0.85, transparent: true, opacity: 0.85, emissive: 0x000000 });
+const disc = new THREE.Mesh(new THREE.CircleGeometry(3.0, 96).rotateX(-Math.PI / 2), discMat); disc.position.y = 0.012;
+const ringMat = new THREE.MeshBasicMaterial({ color: COL.brass });
+const ring = new THREE.Mesh(new THREE.TorusGeometry(3.0, 0.014, 8, 240).rotateX(Math.PI / 2), ringMat); ring.position.y = 0.02;
+const holoMat = new THREE.LineBasicMaterial({ color: COL.brass, transparent: true, opacity: 0.85 });
+const holo = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(0.5, 1)), holoMat); holo.position.y = 1.5;
+tableG.add(disc, ring, holo);
+const prof = [[0, 0], [0.34, 0], [0.34, 0.05], [0.28, 0.1], [0.22, 0.2], [0.17, 0.7], [0.135, 1.06], [0.21, 1.13], [0.21, 1.17], [0.1, 1.22], [0, 1.24]].map(([x, y]) => new THREE.Vector2(x, y));
+const bodyGeo = new THREE.LatheGeometry(prof, 48), headGeo = new THREE.SphereGeometry(0.19, 32, 16);
+const haloGeo = new THREE.RingGeometry(0.42, 0.5, 64).rotateX(-Math.PI / 2);
+const pawns = [];
+for (let i = 0; i < 6; i++) {
+  const a = -Math.PI / 2 + i * Math.PI / 3;
+  const g = new THREE.Group(); g.position.set(Math.cos(a) * 3.0, 0, Math.sin(a) * 3.0);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x1a2534, metalness: 0.6, roughness: 0.32, emissive: 0x000000 });
+  const head = new THREE.Mesh(headGeo, mat); head.position.y = 1.42;
+  g.add(new THREE.Mesh(bodyGeo, mat), head);
+  const hl = new THREE.Mesh(haloGeo, new THREE.MeshBasicMaterial(Object.assign({ color: COL.brass, opacity: 0.6 }, additive)));
+  hl.position.set(g.position.x, 0.016, g.position.z);
+  tableG.add(g, hl);
+  pawns.push({ g, mat, halo: hl });
+}
+function mkLine(color) {
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0], 3));
+  const l = new THREE.Line(geo, new THREE.LineBasicMaterial(Object.assign({ color, opacity: 0 }, additive))); l.frustumCulled = false; tableG.add(l); return l;
+}
+const anchorLines = [1, 2, 3, 4, 5].map(() => mkLine(COL.threat));
+const meshLines = []; for (let k = 0; k < 15; k++) meshLines.push(mkLine(COL.brass));
+function setLine(l, a, b, k, op) {
+  const p = l.geometry.attributes.position;
+  p.setXYZ(0, a.x, a.y, a.z); p.setXYZ(1, a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k, a.z + (b.z - a.z) * k); p.needsUpdate = true;
+  l.material.opacity = op; l.visible = op > 0.001 && k > 0.001;
+}
+const pulses = [0, 1, 2].map(() => { const m = new THREE.Mesh(new THREE.RingGeometry(0.96, 1.0, 96).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial(Object.assign({ color: COL.threat, opacity: 0 }, additive))); tableG.add(m); return m; });
+const beamProto = new THREE.CylinderGeometry(0.07, 0.07, 6, 16, 1, true).translate(0, 3, 0);
+const beams = pawns.map(() => {
+  const m = new THREE.Mesh(beamProto, new THREE.ShaderMaterial(Object.assign({
+    uniforms: { uOp: { value: 0 }, uCol: { value: C.brass.clone() } }, side: THREE.DoubleSide, vertexShader: vsUv,
+    fragmentShader: 'uniform float uOp; uniform vec3 uCol; varying vec2 vUv; void main(){ gl_FragColor = vec4(uCol, uOp * 0.55 * pow(1.0 - vUv.y, 1.3)); }'
+  }, additive)));
+  tableG.add(m); return m;
+});
+const cube = new THREE.Group();
+const cubeEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(0.34, 0.34, 0.34)), new THREE.LineBasicMaterial({ color: COL.threat, transparent: true }));
+const cubeFill = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), new THREE.MeshBasicMaterial(Object.assign({ color: COL.threat, opacity: 0.25 }, additive)));
+cube.add(cubeEdge, cubeFill); tableG.add(cube);
+const consRing = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 160 }, (_, i) => { const a = i / 160 * Math.PI * 2; return V(Math.cos(a) * 4.3, 0.03, Math.sin(a) * 4.3); })), new THREE.LineDashedMaterial({ color: COL.slate, dashSize: 0.25, gapSize: 0.18, transparent: true }));
+consRing.computeLineDistances(); tableG.add(consRing);
+const hp = new THREE.Vector3(), hq = new THREE.Vector3();
+const headOf = (i, out) => { const p = pawns[i].g; return out.set(p.position.x, 1.52 * p.scale.y, p.position.z); };
+function tableBase() {
+  anchorLines.forEach(l => l.visible = false); meshLines.forEach(l => l.visible = false);
+  beams.forEach(b => b.visible = false); pulses.forEach(p => p.visible = false);
+  cube.visible = false; consRing.visible = false; holo.visible = true;
+  pawns.forEach(p => { p.g.scale.setScalar(1); p.halo.scale.setScalar(1); });
+}
+function setTableA(L) {
+  tableBase();
+  const grow = sm(L, 3, 6.5), dim = sm(L, 8, 11), cons = sm(L, 18, 21);
+  ringMat.color.setHex(COL.threat).multiplyScalar(0.9); discMat.emissive.setHex(0x1a0806);
+  holoMat.color.setHex(COL.threat); holo.rotation.set(L * 0.12, L * 0.35, 0);
+  key.color.setHex(0xff7a5c); key.intensity = 1.9; key.position.set(0, 10, -1.5); key.target.position.set(0, 0, -1.5);
+  fill.color.setHex(COL.threat); fill.intensity = 1.0;
+  pawns.forEach((p, i) => {
+    if (i === 0) { p.g.scale.setScalar(1 + 0.85 * grow); p.mat.emissive.setHex(COL.brass).multiplyScalar(0.07 + 0.13 * grow); p.halo.material.color.setHex(COL.threat); p.halo.material.opacity = 0.7; p.halo.scale.setScalar(1 + 0.6 * grow); }
+    else { p.g.scale.set(1, 1 - 0.2 * dim, 1); p.mat.emissive.setHex(COL.slate).multiplyScalar(0.12 * (1 - 0.85 * dim)); p.halo.material.color.setHex(COL.slate); p.halo.material.opacity = 0.5 * (1 - 0.7 * dim); }
+  });
+  headOf(0, hp);
+  for (let i = 1; i < 6; i++) setLine(anchorLines[i - 1], hp, headOf(i, hq), sm(L, 4 + 0.3 * i, 5.6 + 0.3 * i), 0.85 * (1 - 0.4 * cons));
+  if (L > 3) pulses.forEach((r, j) => { const ph = fract((L - 3) / 1.8 + j / 3); r.visible = true; r.scale.setScalar(0.6 + ph * 3.4); r.material.opacity = (1 - ph) * 0.45 * grow * (1 - 0.6 * cons); r.position.set(pawns[0].g.position.x, 0.02, pawns[0].g.position.z); });
+  const err = sm(L, 9.6, 10.6) * (1 - sm(L, 16, 18));
+  if (L > 9.6 && L < 18.2) {
+    const f = sm(L, 16, 18), j = L < 16 ? 0.05 : 0, lu = pawns[3].g;
+    cube.visible = true;
+    cube.position.set(lu.position.x + Math.sin(L * 53) * j, lerp(2.05, 1.45, f) * lu.scale.y + Math.sin(L * 71) * j * 0.6, lu.position.z + Math.cos(L * 47) * j);
+    cube.scale.setScalar(Math.max(0.001, (1 - f) * (0.9 + 0.2 * Math.sin(L * 37))));
+    cube.rotation.set(L * 0.6, L * 0.8, 0);
+    cubeEdge.material.color.setHex(COL.threat); cubeEdge.material.opacity = err;
+    cubeFill.material.color.setHex(COL.threat); cubeFill.material.opacity = 0.25 * err;
+  }
+  if (cons > 0) {
+    consRing.visible = true; consRing.material.opacity = 0.7 * cons; consRing.rotation.y = L * 0.04;
+    pawns.forEach((p, i) => { if (i) p.mat.emissive.setHex(COL.slate).multiplyScalar(0.05); });
+  }
+}
+function setTableB(L) {
+  tableBase();
+  ringMat.color.setHex(COL.brass); discMat.emissive.setHex(0x120c04);
+  holoMat.color.setHex(COL.brass); holo.rotation.set(L * 0.1, L * 0.25, 0);
+  key.color.setHex(0xffd49a); key.intensity = 1.5; key.position.set(0, 10, 1.5); key.target.position.set(0, 0, 0);
+  fill.color.setHex(COL.brass); fill.intensity = 0.8;
+  const fadeB = 1 - 0.5 * sm(L, 13, 15);
+  pawns.forEach((p, i) => {
+    const b = sm(L, 8.5 + 0.35 * i, 9.5 + 0.35 * i);
+    p.mat.emissive.setHex(COL.brass).multiplyScalar(0.1 + 0.25 * b);
+    p.halo.material.color.setHex(COL.brass); p.halo.material.opacity = 0.35 + 0.5 * b;
+    const bm = beams[i]; bm.visible = b > 0.001; bm.position.set(p.g.position.x, 0, p.g.position.z); bm.scale.set(1, Math.max(0.001, b), 1); bm.material.uniforms.uOp.value = 0.48 * fadeB;
+  });
+  let k = 0;
+  for (let i = 0; i < 6; i++) for (let j = i + 1; j < 6; j++, k++) setLine(meshLines[k], headOf(i, hp), headOf(j, hq), 1, 0.5 * sm(L, 11.3 + 0.1 * k, 12.3 + 0.1 * k));
+  const rise = sm(L, 13.6, 14.6), lu = pawns[3].g;
+  if (L > 2.5) {
+    cube.visible = true; cube.position.set(lu.position.x, 1.95 + 0.75 * rise, lu.position.z); cube.scale.setScalar(1 + 0.45 * rise); cube.rotation.set(L * 0.4, L * 0.6, 0);
+    cubeEdge.material.color.setHex(rise > 0.5 ? COL.brass : COL.threat); cubeEdge.material.opacity = 0.35 + 0.65 * rise;
+    cubeFill.material.color.setHex(COL.brass); cubeFill.material.opacity = 0.2 * rise;
+  }
+}
+function setTableFinal(L) {
+  tableBase();
+  ringMat.color.setHex(COL.brass); discMat.emissive.setHex(0x120c04);
+  holoMat.color.setHex(COL.brass); holo.rotation.set(L * 0.1, L * 0.25, 0);
+  key.color.setHex(0xffd49a); key.intensity = 1.4; key.position.set(0, 10, 1.5); key.target.position.set(0, 0, 0);
+  fill.color.setHex(COL.brass); fill.intensity = 0.8;
+  pawns.forEach(p => { p.mat.emissive.setHex(COL.brass).multiplyScalar(0.24); p.halo.material.color.setHex(COL.brass); p.halo.material.opacity = 0.7; });
+  let k = 0;
+  for (let i = 0; i < 6; i++) for (let j = i + 1; j < 6; j++, k++) setLine(meshLines[k], headOf(i, hp), headOf(j, hq), 1, 0.5);
+}
+
+/* ---------- anillos SCARF ---------- */
+const ringsG = new THREE.Group(); scene.add(ringsG);
+const RR = [2.5, 2.85, 3.2, 3.55, 3.9], RX = [1.25, 0.35, -0.7, 1.6, -1.15], RY = [0, 0.95, 1.9, -0.75, 2.5];
+const rings = RR.map((r, i) => {
+  const holder = new THREE.Group(); holder.rotation.set(RX[i], RY[i], 0);
+  const m = new THREE.Mesh(new THREE.TorusGeometry(r, 0.014, 8, 256), new THREE.MeshBasicMaterial({ color: COL.threat }));
+  const sat = new THREE.Mesh(new THREE.SphereGeometry(0.075, 16, 8), new THREE.MeshBasicMaterial({ color: COL.paper }));
+  holder.add(m, sat); ringsG.add(holder);
+  return { holder, m, sat, r };
+});
+
+/* ---------- columnas del marco teórico ---------- */
+const colsG = new THREE.Group(); scene.add(colsG);
+const coneProto = new THREE.ConeGeometry(1.7, 9.4, 48, 1, true).translate(0, -4.7, 0);
+const cols = [-5, 0, 5].map((x, i) => {
+  const g = new THREE.Group(); g.position.set(x, 0, 0);
+  const box = new THREE.BoxGeometry(1.1, 4.4, 1.1).translate(0, 2.2, 0);
+  const body = new THREE.Mesh(box, new THREE.MeshStandardMaterial({ color: 0x7f93ad, metalness: 0.2, roughness: 0.08, transparent: true, opacity: 0.12, depthWrite: false, emissive: 0x000000 }));
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(box), new THREE.LineBasicMaterial({ color: COL.brass, transparent: true, opacity: 0.25 }));
+  const cone = new THREE.Mesh(coneProto, new THREE.ShaderMaterial(Object.assign({
+    uniforms: { uOp: { value: 0 }, uCol: { value: new THREE.Color(0xffe2b0) } }, side: THREE.DoubleSide,
+    vertexShader: 'varying vec2 vUv; varying vec3 vN; varying vec3 vV; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'uniform float uOp; uniform vec3 uCol; varying vec2 vUv; varying vec3 vN; varying vec3 vV; void main(){ float f = pow(abs(dot(vN, vV)), 1.5); gl_FragColor = vec4(uCol, uOp * 0.16 * f * (0.25 + 0.75 * vUv.y)); }'
+  }, additive)));
+  cone.position.y = 9.4;
+  const glyph = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.OctahedronGeometry(0.32, 0)), new THREE.LineBasicMaterial({ color: COL.brass, transparent: true }));
+  glyph.position.y = 2.6;
+  g.add(body, edges, cone, glyph); colsG.add(g);
+  return { g, body, edges, cone, glyph };
+});
+
+/* ---------- ojo de vigilancia ---------- */
+const eyeG = new THREE.Group(); scene.add(eyeG);
+const eyeRings = [[0.62, 1.0, 0.9], [1.5, 1.6, 0.5], [2.22, 2.3, 0.35], [2.94, 3.0, 0.25], [3.74, 3.8, 0.18]].map(([a, b, o]) => {
+  const m = new THREE.Mesh(new THREE.RingGeometry(a, b, 128), new THREE.MeshBasicMaterial(Object.assign({ color: COL.threat, opacity: o, side: THREE.DoubleSide }, additive)));
+  m.userData.o = o; eyeG.add(m); return m;
+});
+const pupil = new THREE.Mesh(new THREE.CircleGeometry(0.62, 64), new THREE.MeshBasicMaterial({ color: 0x050608, transparent: true })); pupil.position.z = 0.01; eyeG.add(pupil);
+const tick = []; for (let i = 0; i < 72; i++) { const a = i / 72 * Math.PI * 2; tick.push(V(Math.cos(a) * 2.45, Math.sin(a) * 2.45, 0), V(Math.cos(a) * 2.75, Math.sin(a) * 2.75, 0)); }
+const ticks = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(tick), new THREE.LineBasicMaterial(Object.assign({ color: COL.threat, opacity: 0.6 }, additive)));
+eyeG.add(ticks);
+
+/* ---------- posproceso ---------- */
+const composer = new THREE.EffectComposer(renderer);
+composer.setPixelRatio(1); composer.setSize(W, H);
+composer.addPass(new THREE.RenderPass(scene, camera));
+const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(W, H), 0.8, 0.55, 0.22); composer.addPass(bloom);
+const fxaa = new THREE.ShaderPass(THREE.FXAAShader); fxaa.uniforms.resolution.value.set(1 / W, 1 / H); composer.addPass(fxaa);
+const fxPass = new THREE.ShaderPass({
+  uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uFade: { value: 0 }, uAber: { value: 0.0015 }, uScan: { value: 0 }, uGrain: { value: 0.035 }, uRes: { value: new THREE.Vector2(W, H) } },
+  vertexShader: vsUv,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime, uFade, uAber, uScan, uGrain; uniform vec2 uRes; varying vec2 vUv;
+    float hash(vec2 p){ p = fract(p * vec2(443.897, 441.423)); p += dot(p, p.yx + 19.19); return fract((p.x + p.y) * p.x); }
+    void main(){
+      vec2 uv = vUv;
+      if (uScan > 0.0) { float band = floor(uv.y * 48.0); uv.x += (hash(vec2(band, floor(uTime * 24.0))) - 0.5) * 0.03 * uScan; }
+      vec2 c = uv - 0.5, off = c * uAber * 2.0;
+      vec3 col = vec3(texture2D(tDiffuse, uv + off).r, texture2D(tDiffuse, uv).g, texture2D(tDiffuse, uv - off).b);
+      col = col * 1.06 / (1.0 + col * 0.10);
+      col *= mix(0.42, 1.0, smoothstep(0.95, 0.25, length(c * vec2(1.0, 0.82))));
+      if (uScan > 0.0) col += step(0.96, fract(uv.y * 120.0 - uTime * 30.0)) * 0.05 * uScan;
+      col += (hash(uv * uRes + uTime * 61.0) - 0.5) * uGrain;
+      gl_FragColor = vec4(col * (1.0 - uFade), 1.0);
+    }`
+});
+composer.addPass(fxPass);
+const fxU = fxPass.uniforms;
+bU.uScale.value = 1; dustU.uScale.value = 1;
+
+/* ---------- cámara ---------- */
+const P = new THREE.Vector3(), T = new THREE.Vector3(); let FOV = 35;
+const V0 = V(0, 0.9, 0), VT = V(0, 0.7, -0.5);
+function orbit(c, a, R, h, off, outP, outT) {
+  outP.set(c.x + Math.sin(a) * R, h, c.z + Math.cos(a) * R);
+  outT.set(c.x - Math.cos(a) * off, c.y, c.z + Math.sin(a) * off);
+}
+function rig(pp, tt) {
+  const A = new THREE.CatmullRomCurve3(pp.map(p => V(...p))), B = new THREE.CatmullRomCurve3(tt.map(p => V(...p)));
+  return (k, oP, oT) => { A.getPointAt(clamp(k), oP); B.getPointAt(clamp(k), oT); };
+}
+const rig3 = rig([[0, 1.0, 10.5], [0, 1.6, 8.6], [0, 3.6, 8.2], [0, 6.4, 9.2]], [[0, 0.8, 0], [0, 0.75, -0.6], [0, 0.5, -1.2], [0, 0.1, -1.8]]);
+const rig7 = rig([[-8.6, 1.6, 8.2], [-4.9, 1.65, 7.6], [0.4, 1.7, 7.4], [5.5, 1.7, 7.6], [7.4, 1.8, 8.2]], [[-6.6, 2.5, 0], [-4.4, 2.6, 0], [0.6, 2.6, 0], [5.7, 2.6, 0], [6.8, 2.5, 0]]);
+function piece(L, keys) { for (let i = 0; i < keys.length - 1; i++) { const a = keys[i], b = keys[i + 1]; if (L <= b[0]) return lerp(a[1], b[1], sm(L, a[0], b[0]) * 0.5 + clamp((L - a[0]) / (b[0] - a[0])) * 0.5); } return keys[keys.length - 1][1]; }
+const fx = { aber: 0.0015, scan: 0 };
+
+/* ---------- escenas 3D ---------- */
+function pose0(L, t) {
+  panelG.visible = true; panelG.position.set(0, 2.05, 0); panelG.rotation.set(0, -0.14, 0);
+  panelU.uOp.value = 1; haloU.uOp.value = 1;
+  const hold = sm(L, 4.35, 5.3); AVS.sat = 1 - 0.6 * hold; AVS.dim = 1 - 0.3 * hold; AVS.op = 1;
+  avatarFrame(Math.round((t - 0.30) * FPS));
+  setPool(0, 0.8, 4.5, 0x1b3050, 1.0);
+  const k = sm(L, 3.5, 7.8), push = sm(L, 0, 3.5);
+  P.set(lerp(0.3, -0.4, k), lerp(2.08, 2.45, k), lerp(6.5 - 0.35 * push, 11.8, k));
+  T.set(lerp(0.0, -2.55, k), 2.05, 0);
+  FOV = lerp(30, 34, k);
+}
+function pose1(L) {
+  brainG.visible = true; brainG.position.set(0, 2.6, 0); brainG.scale.setScalar(1);
+  bU.uAB.value = sm(L, 1.6, 7.6); bU.uBC.value = sm(L, 11.6, 15.6); bU.uOp.value = sm(L, 0, 1.2);
+  bU.uColA.value.setHex(0x6c8cc0); bU.uColB.value.copy(C.brass);
+  fU.uOp.value = sm(bU.uAB.value, 0.75, 1) * (1 - bU.uBC.value); fU.uCol.value.setHex(0x9fb7da);
+  setPool(0, 0, 4, 0x15253e, 1);
+  const k = inout(clamp(L / 17));
+  orbit(brainG.position, lerp(-0.55, 0.5, k), lerp(10.5, 9.0, k), lerp(2.2, 3.4, k), lerp(1.9, 0, sm(L, 11, 15)), P, T);
+  FOV = 33;
+}
+function pose2(L) {
+  treeG.visible = true; setTree(L, [6.2, 8.0, 9.8], 0);
+  const k = inout(clamp(L / 18)); rig3(k, P, T); FOV = lerp(30, 40, k);
+  setPool(0, -0.5, 7, 0x2a2416, 0.8);
+}
+function pose3(L) {
+  tableG.visible = true; tableG.scale.setScalar(1); setTableA(L);
+  if (L < 6) { P.set(-2.7, lerp(13.5, 11.8, L / 6), 0.0001); T.set(-2.7, 0, 0); camera.up.set(0, 0, -1); FOV = 38; }
+  else if (L < 14) { const k = inout(clamp((L - 6) / 8)), d = lerp(14, 5, k); P.set(-1.1, lerp(2.6, 3.3, k), -3 + d); T.set(-1.1, 1.9, -3); FOV = 2 * Math.atan(2.4686 / d) * 180 / Math.PI; }
+  else { const k = inout(clamp((L - 14) / 11)); orbit(V0, lerp(0.45, -0.3, k), 9.6, 4.6, 2.6, P, T); FOV = 34; }
+  setPool(0, 0, 4.6, 0x3a120c, 1.1);
+}
+let rwTC = 0;
+function pose4(L) {
+  if (L < 1.9) { const back = 25 * (1 - L / 1.9); rwTC = 43 + back; pose3(back); fx.aber = 0.012; fx.scan = 1; return; }
+  if (L < 16) {
+    tableG.visible = true; tableG.scale.setScalar(1); setTableB(L);
+    const k = inout(clamp((L - 1.9) / 14.1)); orbit(V0, lerp(-0.75, 0.2, k), 8.8, 2.4, 2.5, P, T); T.y = 1.75; FOV = 34;
+    setPool(0, 0, 4.6, 0x3a2a10, 1.0);
+  } else {
+    treeG.visible = true; setTree(99, [0, 0, 0], sm(L, 19.4, 20.4));
+    const k = inout(clamp((L - 16) / 10)); orbit(VT, lerp(0.95, 0.7, k), lerp(12.5, 10.8, k), lerp(5.4, 4.6, k), 2.2, P, T); FOV = 36;
+    setPool(0, -0.5, 7, 0x2a2416, 0.9);
+  }
+}
+function pose5(L) {
+  brainG.visible = true; brainG.position.set(0, 2.6, 0); brainG.scale.setScalar(1);
+  ringsG.visible = true; ringsG.position.copy(brainG.position); ringsG.scale.setScalar(0.85);
+  bU.uAB.value = 1; bU.uBC.value = 0; bU.uOp.value = 1;
+  const gg = sm(L, 7.8, 12.6);
+  bU.uColA.value.copy(C.threat).lerp(C.reward, gg).multiplyScalar(0.9); bU.uColB.value.copy(C.brass);
+  fU.uOp.value = 1; fU.uCol.value.copy(C.threat).lerp(C.reward, gg);
+  rings.forEach((r, i) => {
+    r.holder.scale.setScalar(Math.max(0.001, sm(L, 1.0 + 0.2 * i, 2.2 + 0.2 * i)));
+    r.m.material.color.copy(C.threat).lerp(C.reward, sm(L, 7.8 + i, 8.8 + i));
+    const th = i * 1.2566 + L * 0.18 * (1 + i * 0.08);
+    r.sat.position.set(Math.cos(th) * r.r, Math.sin(th) * r.r, 0);
+    r.sat.material.color.copy(r.m.material.color).lerp(C.paper, 0.5);
+  });
+  const k = inout(clamp(L / 21));
+  orbit(brainG.position, lerp(-0.35, 0.85, k), lerp(11.5, 10.4, k), 3.6, 0, P, T); T.y = 2.95; FOV = 40;
+  setPool(0, 0, 5, gg > 0.5 ? 0x15301f : 0x30120c, 0.9);
+}
+function pose6(L) {
+  colsG.visible = true;
+  const on = [1.6, 7.8, 14.4];
+  let last = 0;
+  cols.forEach((c, i) => {
+    const v = sm(L, on[i], on[i] + 1.4); if (v > 0.5) last = i;
+    c.edges.material.opacity = 0.18 + 0.82 * v; c.cone.material.uniforms.uOp.value = v;
+    c.body.material.opacity = 0.08 + 0.12 * v; c.body.material.emissive.setHex(COL.brass).multiplyScalar(0.12 * v);
+    c.glyph.material.opacity = 0.2 + 0.8 * v; c.glyph.rotation.set(L * 0.3 + i, L * 0.5 + i, 0);
+  });
+  rig7(piece(L, [[0, 0], [4.5, 0.25], [10.5, 0.5], [17, 0.75], [23, 1]]), P, T); FOV = 36;
+  setPool(cols[last].g.position.x, 0, 3.2, 0x2a2414, 1);
+}
+function pose7(L) {
+  eyeG.visible = true; eyeG.position.set(-2.4, 3.1, -4.5);
+  const c = sm(L, 6.2, 9.4);
+  eyeG.scale.setScalar(Math.max(0.001, 1 - 0.92 * c)); eyeG.rotation.z = L * 0.05;
+  eyeRings.forEach(m => m.material.opacity = m.userData.o * (1 - c)); ticks.material.opacity = 0.6 * (1 - c); pupil.material.opacity = 1 - c;
+  const k = ease(clamp(L / 15));
+  P.set(lerp(1.7, 1.3, k), lerp(2.6, 2.5, k), lerp(10.4, 8.8, k)); T.set(lerp(2.0, 1.8, k), lerp(2.8, 2.7, k), 0); FOV = 36;
+  setPool(-1.0, 0, 4.5, c > 0.5 ? 0x2a2414 : 0x2c0f0d, 1);
+}
+function pose8(L) {
+  if (L < 16.85) {
+    tableG.visible = true; tableG.scale.setScalar(1); setTableFinal(L);
+    if (L > 10) { brainG.visible = true; brainG.position.set(0, 6.4, 0); brainG.scale.setScalar(1.25); bU.uAB.value = 1; bU.uBC.value = 1; bU.uOp.value = sm(L, 10.5, 13); bU.uColA.value.setHex(0x8fa8cc); bU.uColB.value.copy(C.brass); fU.uOp.value = 0; }
+    orbit(V0, lerp(0.6, -0.15, inout(clamp(L / 11))), 9.6, 3.2, 2.3, P, T); T.y = 1.0; FOV = 36;
+    if (L > 11) { const k = inout(clamp((L - 11) / 5.6)); P.lerp(V(0, 15, 19), k); T.lerp(V(0, 3.6, 0), k); FOV = lerp(36, 42, k); }
+    setPool(0, 0, 6, 0x3a2a10, 1);
+  } else if (L < 21.6) {
+    panelG.visible = true; panelG.position.set(0, 2.05, 0); panelG.rotation.set(0, 0, 0);
+    panelU.uOp.value = 1; haloU.uOp.value = 1; AVS.sat = 1; AVS.dim = 1; AVS.op = sm(L, 16.85, 17.4);
+    avatarFrame(Math.round(clamp(3.0 + (L - 17.3) * 0.5, 3.0, 3.96) * FPS));
+    P.set(0, 2.08, lerp(7.6, 7.0, clamp((L - 16.85) / 4.75))); T.set(0, 2.05, 0); FOV = 30;
+    setPool(0, 0.8, 4.5, 0x1b3050, 1);
+  } else { P.set(0, 2, 8); T.set(0, 2, 0); FOV = 30; }
+}
+const POSE = [pose0, pose1, pose2, pose3, pose4, pose5, pose6, pose7, pose8];
+const SETS = [panelG, brainG, treeG, tableG, ringsG, colsG, eyeG];
+
+/* ---------- DOM ---------- */
+const SC = [...document.querySelectorAll('.scene')].map((el, n) => ({
+  el, n, a: +el.dataset.a, b: +el.dataset.b,
+  anim: [...el.querySelectorAll('[data-in]')].map(e => ({ e, kind: ['mask', 'wipe', 'drift', 'fill', 'rise', 'fade'].find(k => e.classList.contains(k)) || 'fade', tin: +e.dataset.in, tout: e.dataset.out !== undefined ? +e.dataset.out : null, last: '' })),
+  tags: [...el.querySelectorAll('[data-anchor]')], vis: false
+}));
+function animEl(o, L) {
+  const k = o.kind, d = (k === 'mask' || k === 'wipe') ? 1.0 : 0.8;
+  const p = easeQ(clamp((L - o.tin) / d));
+  const q = o.tout === null ? 0 : ease(clamp((L - o.tout) / 0.45));
+  let op = p * (1 - q), tf = 'none', cp = 'none';
+  if (k === 'rise') tf = `translateY(${((1 - p) * 26 - q * 12).toFixed(2)}px)`;
+  else if (k === 'drift') tf = `translateX(${((1 - p) * -34).toFixed(2)}px)`;
+  else if (k === 'mask') { tf = `translateY(${((1 - p) * 38 - q * 10).toFixed(2)}px)`; cp = p >= 1 ? 'inset(-30% -6% -40% -6%)' : `inset(-30% -6% ${((1 - p) * 130 - 30).toFixed(2)}% -6%)`; }
+  else if (k === 'wipe') { op = 1 - q; cp = `inset(0 ${((1 - p) * 100).toFixed(2)}% 0 0)`; }
+  else if (k === 'fill') { op = 1; tf = `scaleX(${p.toFixed(4)})`; }
+  const s = op.toFixed(3) + tf + cp;
+  if (s !== o.last) { o.last = s; o.e.style.opacity = op.toFixed(3); o.e.style.transform = tf; o.e.style.clipPath = cp; }
+}
+const ANCH = {
+  panelTL: v => panel.localToWorld(v.set(-2.56, 1.44, 0)),
+  netRoot: v => brainG.localToWorld(v.set(0, 1.75, 0)),
+  end0: v => v.copy(branches[0].end), end1: v => v.copy(branches[1].end), end2: v => v.copy(branches[2].end),
+  leader: v => tableG.localToWorld(headOf(0, v).add(V(0, 0.42 * pawns[0].g.scale.y, 0))),
+  lucia: v => tableG.localToWorld(headOf(3, v).add(V(0, 0.2, 0))),
+  cube: v => cube.getWorldPosition(v),
+  sat0: v => rings[0].sat.getWorldPosition(v), sat1: v => rings[1].sat.getWorldPosition(v), sat2: v => rings[2].sat.getWorldPosition(v), sat3: v => rings[3].sat.getWorldPosition(v), sat4: v => rings[4].sat.getWorldPosition(v),
+  col0: v => v.set(-5 + 0.85, 3.3, 0), col1: v => v.set(0.85, 3.3, 0), col2: v => v.set(5.85, 3.3, 0),
+  eye: v => v.set(eyeG.position.x, eyeG.position.y + 3.9 * eyeG.scale.y, eyeG.position.z)
+};
+const tv = new THREE.Vector3();
+function placeTag(el) {
+  const f = ANCH[el.dataset.anchor]; if (!f) return;
+  const v = f(tv).project(camera);
+  const vis = v.z < 1 && Math.abs(v.x) < 1.25 && Math.abs(v.y) < 1.25;
+  el.style.visibility = vis ? 'visible' : 'hidden';
+  el.style.transform = `translate3d(${((v.x + 1) / 2 * W).toFixed(1)}px, ${((1 - v.y) / 2 * H).toFixed(1)}px, 0)`;
+}
+let AMP = [];
+const waveBars = [...document.querySelectorAll('#wave i')];
+const lbt = document.getElementById('lbt'), lbb = document.getElementById('lbb');
+const rewindEl = document.getElementById('rewind'), rwtcEl = document.getElementById('rwtc');
+const tcOf = x => { const f = Math.max(0, Math.round(x * FPS)), s = Math.floor(f / FPS); return `00:${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}:${String(f % FPS).padStart(2, '0')}`; };
+
+function renderAt(t) {
+  t = clamp(t, 0, TOTAL - 1 / FPS);
+  const X = 0.3;
+  for (const s of SC) {
+    let o = 0;
+    if (t >= s.a - X && t <= s.b + X) {
+      const fi = s.a === 0 ? 1 : clamp((t - (s.a - X)) / (2 * X)), fo = s.b === TOTAL ? 1 : clamp((s.b + X - t) / (2 * X));
+      o = Math.min(fi, fo);
+    }
+    s.el.style.opacity = o.toFixed(3); s.el.style.visibility = o > 0 ? 'visible' : 'hidden'; s.vis = o > 0;
+    if (o > 0) { const L = t - s.a; for (const a of s.anim) animEl(a, L); }
+  }
+  // 3D
+  SETS.forEach(g => g.visible = false);
+  AVS.on = false;
+  camera.up.set(0, 1, 0);
+  key.intensity = 0; fill.intensity = 0; fx.aber = 0.0015; fx.scan = 0;
+  let i = 0; for (let k = 0; k < SC.length; k++) if (t >= SC[k].a) i = k;
+  const L = t - SC[i].a;
+  POSE[i](L, t);
+  camera.position.set(P.x + Math.sin(t * 0.9) * 0.02 + Math.sin(t * 2.3) * 0.008, P.y + Math.sin(t * 1.1 + 1) * 0.015, P.z);
+  camera.fov = FOV; camera.updateProjectionMatrix(); camera.lookAt(T);
+  let fade = 1 - sm(t, 0, 0.8);
+  for (const b of [8, 25, 43, 94, 115, 138, 153]) fade = Math.max(fade, 1 - sm(Math.abs(t - b), 0, 0.42));
+  fade = Math.max(fade, 1 - sm(Math.abs(t - 84), 0, 0.25), 1 - sm(Math.abs(t - 169.85), 0, 0.35), sm(t, 174.3, 174.9));
+  fxU.uFade.value = fade; fxU.uAber.value = fx.aber; fxU.uScan.value = fx.scan; fxU.uTime.value = t;
+  bU.uT.value = t; fU.uT.value = t; dustU.uT.value = t;
+  branches.forEach(b => b.mat.uniforms.uT.value = t);
+  composer.render();
+  placeAvatar();
+  // etiquetas ancladas al 3D
+  for (const s of SC) if (s.vis) s.tags.forEach(placeTag);
+  // barras de cine, rebobinado y onda de voz
+  const lb = 64 * sm(t, 0.2, 1.4) * (1 - sm(t, 175.0, 176.0));
+  lbt.style.transform = `translateY(${(lb - 64).toFixed(1)}px)`; lbb.style.transform = `translateY(${(64 - lb).toFixed(1)}px)`;
+  const rl = t - 68; rewindEl.style.opacity = (rl > 0 && rl < 1.9) ? (sm(rl, 0, 0.12) * (1 - sm(rl, 1.7, 1.9))).toFixed(3) : '0';
+  if (rl > 0 && rl < 1.9) rwtcEl.textContent = 'Rebobinar · ' + tcOf(rwTC);
+  const a = AMP[Math.floor(t * FPS)] || 0;
+  waveBars.forEach((b, j) => { const v = AMP[Math.floor(t * FPS) - j] || 0; b.style.height = (4 + 26 * Math.min(1, v * (0.7 + 0.3 * Math.sin(j * 1.7)))).toFixed(1) + 'px'; });
+  return a;
+}
+
+const ready = (async () => {
+  await document.fonts.ready;
+  await loadAvatar();
+  try { const r = await fetch('amp.json'); if (r.ok) AMP = await r.json(); } catch (e) {}
+  renderAt(0);
+  return true;
+})();
+window.ENGINE = { ready, renderAt, TOTAL, FPS };
+
+if (!new URLSearchParams(location.search).has('render')) {
+  let t0 = null;
+  const loop = now => { if (t0 === null) t0 = now; renderAt(((now - t0) / 1000) % TOTAL); requestAnimationFrame(loop); };
+  ready.then(() => requestAnimationFrame(loop));
+}
+})();
+</script>
+</body>
+</html>
