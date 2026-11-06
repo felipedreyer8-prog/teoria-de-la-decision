@@ -1,5 +1,7 @@
 # Video: Neuroliderazgo y Teoría de la Decisión
 
+> **Borrador inicial (pensado para Higgsfield).** El video final y su guion están en [README.md](README.md).
+
 Basado en el ensayo *Trabajo Final – Teoría de la Decisión* (Dra. Marina Santucci).
 Idea central: **"El líder no solo toma decisiones. También crea el contexto en el que su equipo decide."**
 
