@@ -3,11 +3,13 @@
 Secciones alineadas con las escenas: E1 calma, E2 tensa y escasa, E3 reflexiva,
 E4-E6 cálida y resolutiva. Registro medio-grave para no competir con las voces.
 """
-import sys, wave
+import json, sys, wave
 import numpy as np
 
 SR = 44100
-DUR = 300.0
+CFG = json.load(open(sys.argv[2]))
+DUR = float(CFG["dur"])
+ESC = CFG["esc"]
 N = int(SR * DUR)
 rng = np.random.default_rng(7)
 
@@ -17,6 +19,7 @@ def midi(n):
 def env_adsr(n, a, r, sus=1.0):
     e = np.ones(n) * sus
     na, nr = max(1, int(a * SR)), max(1, int(r * SR))
+    nr = min(nr, n); na = min(na, max(1, n - nr))
     e[:na] = np.linspace(0, sus, na)
     e[-nr:] *= np.linspace(1, 0, nr)
     return e
@@ -66,14 +69,12 @@ CH = {
     "Em": [40, 55, 59, 62], "F#m": [42, 54, 57, 61], "Dadd9": [50, 57, 64, 66],
 }
 # Secciones: (inicio, fin, progresión, segundos por acorde, estilo)
-SEC = [
-    (0.0,   35.5,  ["D", "Bm", "G", "A"], 4.0, "calma"),
-    (33.3,  85.0,  ["Dm", "Bb", "Gm", "A7"], 5.0, "tension"),
-    (83.3, 143.5,  ["Bm", "G", "D", "A"], 4.5, "reflexiva"),
-    (141.7, 218.5, ["D", "A", "Bm", "G"], 4.0, "calida"),
-    (216.7, 268.5, ["G", "D", "Em", "A"], 4.0, "calida"),
-    (266.7, 300.0, ["G", "A", "D", "Dadd9"], 4.2, "final"),
-]
+_P = [(["D", "Bm", "G", "A"], 4.0, "calma"), (["Dm", "Bb", "Gm", "A7"], 5.0, "tension"), (["Bm", "G", "D", "A"], 4.5, "reflexiva"),
+      (["D", "A", "Bm", "G"], 4.0, "calida"), (["G", "D", "Em", "A"], 4.0, "calida"), (["G", "A", "D", "Dadd9"], 4.2, "final")]
+SEC = []
+for k, e in enumerate(["E1", "E2", "E3", "E4", "E5", "E6"]):
+    a0, b0 = ESC[e]
+    SEC.append((a0, min(DUR, b0 + 2.2), *_P[k]))
 
 L = np.zeros((N, 2))
 

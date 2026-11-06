@@ -87,53 +87,43 @@ def P(mn, w, cap=None, label=None, elastic=False):
 def C(i):
     return dict(k="cue", id=i)
 
-DG, NG = 1.4, 3.0   # topes de pausa: entre diálogos / entre frases del narrador
+# Pausas naturales (mín., peso para repartir el tiempo extra, tope). La duración de cada escena sale del
+# contenido; el total se lleva a OBJETIVO sumando aire sobre todo en título, placa, SCARF y cierre.
+OBJETIVO = 225.0   # 3:45
 LAYOUT = {
-    "E1": [P(5.5, 1.0, 9.0, "title", True), C("N1a"), P(0.9, .8, NG), C("N1b"), P(1.0, .8, NG), C("N1c"), P(1.2, 1.0, 4.5, elastic=True)],
-    "E2": [P(1.2, .6, None, "arrive", True), C("J1"), P(.7, .3, DG), C("L1"), P(.6, .3, DG), C("J2"), P(2.0, 1.2, 5.0, "silence", True),
-           C("N2a"), P(.9, .6, NG), C("N2b"), P(.9, .6, NG), C("N2c"), P(1.5, 1.0, 4.5, elastic=True)],
-    "E3": [P(1.4, .5, 4.0, elastic=True), C("N3a"), P(1.0, 1, NG), C("N3b"), P(.8, 1, NG), C("N3c"), P(.8, 1, NG), C("N3d"),
-           P(.8, 1, NG), C("N3e"), P(.8, 1, NG), C("N3f"), P(1.5, 1.5, 5.0, "hold", True), C("N3g"), P(1.5, 1.0, 4.5, elastic=True)],
-    "E4": [P(4.0, .8, 6.5, "card", True), P(1.2, .5, None, "establish", True), C("J3"), P(.7, .3, DG), C("L2"), P(.7, .3, DG), C("J4"),
-           P(.7, .3, DG), C("L3"), P(.7, .3, DG), C("J5"), P(1.5, 1.0, 5.0, "after", True), C("N4a"), P(.9, .7, NG), C("N4b"),
-           P(.9, .7, NG), C("N4c"), P(1.2, 1.0, 4.5, elastic=True)],
-    "E5": [P(.8, .5, 3.0, elastic=True), C("N5a"), P(1.0, 1, NG), C("N5b"), P(.9, .8, NG), C("N5c"), P(1.0, 1, NG), C("N5d"),
-           P(1.2, 1, 4.5, elastic=True)],
-    "E6": [P(.6, .3, 2.0), C("N6a"), P(.8, .5, 2.2), C("N6b"), P(.8, .5, 2.2), C("N6c"), P(.8, .5, 2.2), C("N6d"),
-           P(6.5, 1.5, None, "plate", True)],
+    "E1": [P(4.5, 1.0, 6.0, "title"), C("N1a"), P(.8, .3, 1.2), C("N1b"), P(.9, .3, 1.2), C("N1c"), P(1.2, .5, 2.0)],
+    "E2": [P(2.4, .6, 3.2, "arrive"), C("J1"), P(.55, .1, .8), C("L1"), P(.5, .1, .8), C("J2"), P(2.0, .8, 3.0, "silence"),
+           C("N2a"), P(.8, .3, 1.2), C("N2b"), P(.8, .3, 1.2), C("N2c"), P(1.5, .5, 2.2)],
+    "E3": [P(1.4, .5, 2.2), C("N3a"), P(1.2, .5, 1.8), C("N3b"), P(1.0, .5, 1.6), C("N3c"), P(1.0, .5, 1.6), C("N3d"),
+           P(1.0, .5, 1.6), C("N3e"), P(1.0, .5, 1.6), C("N3f"), P(1.6, .6, 2.4, "hold"), C("N3g"), P(1.6, .5, 2.4)],
+    "E4": [P(3.6, .8, 4.6, "card"), P(1.2, .5, 2.2, "establish"), C("J3"), P(.6, .1, .8), C("L2"), P(.6, .1, .8), C("J4"),
+           P(.6, .1, .8), C("L3"), P(.6, .1, .8), C("J5"), P(1.4, .5, 2.2, "after"), C("N4a"), P(.9, .3, 1.2), C("N4b"),
+           P(.9, .3, 1.2), C("N4c"), P(1.3, .5, 2.0)],
+    "E5": [P(.8, .4, 1.6), C("N5a"), P(1.0, .3, 1.3), C("N5b"), P(.9, .3, 1.2), C("N5c"), P(1.0, .3, 1.3), C("N5d"),
+           P(1.3, .5, 2.0)],
+    "E6": [P(.7, .3, 1.2), C("N6a"), P(.7, .2, 1.0), C("N6b"), P(.7, .2, 1.0), C("N6c"), P(.7, .2, 1.0), C("N6d"),
+           P(6.5, .8, 7.5, "plate")],
 }
 
-T, PADS = {}, {}
+pads = [i for items in LAYOUT.values() for i in items if i["k"] == "pad"]
+natural = sum(DURS[i["id"]] for items in LAYOUT.values() for i in items if i["k"] == "cue") + sum(p["min"] for p in pads)
+extra = {id(p): 0.0 for p in pads}
+rest = OBJETIVO - natural
+for _ in range(20):                   # reparto por pesos respetando topes
+    free = [p for p in pads if p["min"] + extra[id(p)] < p["cap"] - 1e-6]
+    if rest < 1e-6 or not free:
+        break
+    wsum = sum(p["w"] for p in free); used = 0
+    for p in free:
+        add = min(rest * p["w"] / wsum, p["cap"] - p["min"] - extra[id(p)])
+        extra[id(p)] += add; used += add
+    rest -= used
+print(f"duración natural {natural:.1f}s -> {natural + sum(extra.values()):.1f}s")
+
+T, PADS, E = {}, {}, {}
+t = 0.0
 for esc, items in LAYOUT.items():
-    s0, s1 = guion.ventana(esc)
-    speech = sum(DURS[i["id"]] for i in items if i["k"] == "cue")
-    pads = [i for i in items if i["k"] == "pad"]
-    left = (s1 - s0) - speech - sum(p["min"] for p in pads)
-    extra = {id(p): 0.0 for p in pads}
-    if left < 0:   # no entra: achicar pausas proporcionalmente (nunca por debajo del 40 %)
-        f = max(0.4, 1 + left / sum(p["min"] for p in pads))
-        for p in pads:
-            extra[id(p)] = p["min"] * (f - 1)
-        print(f"AVISO {esc}: faltan {-left:.1f}s; pausas al {f:.0%}")
-    else:
-        rest = left
-        for _ in range(20):           # reparto por pesos respetando topes
-            free = [p for p in pads if p["cap"] is None or p["min"] + extra[id(p)] < p["cap"] - 1e-6]
-            if rest < 1e-6 or not free:
-                break
-            wsum = sum(p["w"] for p in free)
-            used = 0
-            for p in free:
-                add = rest * p["w"] / wsum
-                if p["cap"] is not None:
-                    add = min(add, p["cap"] - p["min"] - extra[id(p)])
-                extra[id(p)] += add; used += add
-            rest -= used
-        if rest > 1e-3:               # lo que sobra va a las pausas elásticas
-            el = [p for p in pads if p["elastic"]]
-            for p in el:
-                extra[id(p)] += rest * p["w"] / sum(q["w"] for q in el)
-    t = s0
+    s0 = t
     for i in items:
         if i["k"] == "cue":
             T[i["id"]] = (t, t + DURS[i["id"]]); t += DURS[i["id"]]
@@ -142,38 +132,38 @@ for esc, items in LAYOUT.items():
             if i["label"]:
                 PADS[(esc, i["label"])] = (t, t + d)
             t += d
-    assert abs(t - s1) < 0.05 or left < 0, (esc, t, s1)
+    E[esc] = (s0, t)
+DUR = round(t * FPS) / FPS
 
 def st(i): return T[i][0]
 def en(i): return T[i][1]
 
 # ---------------------------------------------------------------- tomas (cámara sobre escenarios vectoriales)
-E = {e: guion.ventana(e) for e, _, _ in guion.ESCENAS}
 SH = []
 def shot(scene, cut, tr, cam0, cam1, fx=None, freeze=None):
     SH.append(dict(scene=scene, cut=cut, tr=tr, cam0=cam0, cam1=cam1, fx=fx, freezeAt=freeze))
 
 shot("office", 0.0, 0.0, (960, 540, 1.00), (900, 556, 1.08))                                   # E1a título
-shot("office", st("N1b") - .3, .7, (860, 600, 1.50), (880, 592, 1.66))                       # E1b Lucía trabaja
-shot("office", st("N1c") - .3, .7, (1120, 540, 1.12), (1060, 556, 1.22))                     # E1c entra el jefe
-shot("office", E["E2"][0], .8, (1010, 560, 1.12), (1020, 556, 1.22), fx="cool")              # E2a señala el error
-shot("office", st("L1") - .12, .12, (735, 585, 2.30), (735, 580, 2.45), fx="cool")           # E2b Lucía responde
-shot("office", st("J2") - .12, .12, (1405, 505, 2.10), (1405, 500, 2.25), fx="cool")         # E2c jefe impaciente
-shot("office", en("J2") + 1.0, .5, (740, 590, 2.40), (735, 585, 2.75), fx="cool")            # E2b Lucía en silencio
-shot("office", st("N2c") - .3, .6, (990, 560, 1.12), (990, 556, 1.20), fx="cool")            # E2a plano general
+shot("office", st("N1b") - .3, 0.0, (860, 600, 1.50), (880, 592, 1.66))                       # E1b Lucía trabaja
+shot("office", st("N1c") - .3, 0.0, (1120, 540, 1.12), (1060, 556, 1.22))                     # E1c entra el jefe
+shot("office", E["E2"][0], 0.0, (1010, 560, 1.12), (1020, 556, 1.22), fx="cool")              # E2a señala el error
+shot("office", st("L1") - .12, 0.0, (735, 585, 2.30), (735, 580, 2.45), fx="cool")           # E2b Lucía responde
+shot("office", st("J2") - .12, 0.0, (1405, 505, 2.10), (1405, 500, 2.25), fx="cool")         # E2c jefe impaciente
+shot("office", en("J2") + 1.0, 0.0, (740, 590, 2.40), (735, 585, 2.75), fx="cool")            # E2b Lucía en silencio
+shot("office", st("N2c") - .3, 0.0, (990, 560, 1.12), (990, 556, 1.20), fx="cool")            # E2a plano general
 fz = SH[-1]; tf = E["E3"][0]
 shot("office", E["E3"][0], .9, fz["cam1"], (990, 556, 1.24), fx="freeze", freeze=tf)         # E3 congelado + SCARF
 shot("office", st("N3g") - .5, .9, (990, 556, 1.24), (990, 556, 1.28), fx="dim", freeze=tf)  # E3 amenazas
 shot("office", E["E4"][0], .25, (990, 556, 1.28), (960, 540, 0.96), fx="rewind", freeze=tf)  # rebobinado
 card = PADS[("E4", "card")]
 shot("meeting", card[1] - .3, .9, (960, 640, 1.30), (960, 640, 1.42), fx="warm")             # E4a en privado
-shot("meeting", st("L2") - .12, .12, (1180, 630, 2.00), (1185, 628, 2.12), fx="warm")        # E4b Lucía
-shot("meeting", st("J4") - .12, .12, (740, 630, 2.00), (735, 628, 2.12), fx="warm")          # E4c jefe
-shot("meeting", st("L3") - .12, .12, (1185, 640, 2.10), (1180, 632, 2.25), fx="warm")        # E4b Lucía
-shot("meeting", st("J5") - .12, .12, (735, 640, 2.10), (740, 632, 2.25), fx="warm")          # E4c jefe
-shot("meeting", en("J5") + 1.0, .8, (960, 650, 1.55), (960, 640, 1.32), fx="warm")           # E4a plano general
-shot("meeting", E["E5"][0], .8, (860, 640, 1.75), (830, 636, 1.90), fx="warm")               # E5a el jefe escucha
-shot("meeting", st("N5b") - .3, .8, (960, 680, 1.70), (960, 670, 1.95), fx="warm")           # E5b revisan juntos
+shot("meeting", st("L2") - .12, 0.0, (1180, 630, 2.00), (1185, 628, 2.12), fx="warm")        # E4b Lucía
+shot("meeting", st("J4") - .12, 0.0, (740, 630, 2.00), (735, 628, 2.12), fx="warm")          # E4c jefe
+shot("meeting", st("L3") - .12, 0.0, (1185, 640, 2.10), (1180, 632, 2.25), fx="warm")        # E4b Lucía
+shot("meeting", st("J5") - .12, 0.0, (735, 640, 2.10), (740, 632, 2.25), fx="warm")          # E4c jefe
+shot("meeting", en("J5") + 1.0, 0.0, (960, 650, 1.55), (960, 640, 1.32), fx="warm")           # E4a plano general
+shot("meeting", E["E5"][0], 0.0, (860, 640, 1.75), (830, 636, 1.90), fx="warm")               # E5a el jefe escucha
+shot("meeting", st("N5b") - .3, 0.0, (960, 680, 1.70), (960, 670, 1.95), fx="warm")           # E5b revisan juntos
 shot("office", st("N5d") - .3, .8, (870, 600, 1.50), (900, 598, 1.70), fx="warm")            # E5c Lucía corrige
 shot("team", E["E6"][0], .8, (960, 600, 1.18), (960, 610, 1.32), fx="warm")                  # E6 equipo
 for k, s in enumerate(SH):
@@ -181,7 +171,7 @@ for k, s in enumerate(SH):
     s["a"] = s["cut"] - s["tr"] / 2
     s["b"] = s["end"] + (SH[k + 1]["tr"] / 2 if k + 1 < len(SH) else 0)
 
-MARKS = dict(walk0=st("N1c") + 0.6, walk1=E["E2"][0] + 2.0, review=st("N5b") - 0.3, fix0=st("N5d") + 0.6)
+MARKS = dict(walk0=max(st("N1c") + 0.6, E["E2"][0] + 1.2 - 7.5), walk1=E["E2"][0] + 1.2, review=st("N5b") - 0.3, fix0=st("N5d") + 0.6)
 
 # ---------------------------------------------------------------- gráficos superpuestos
 OV = []
@@ -288,6 +278,9 @@ voice = np.zeros(n, dtype=np.float32)
 for c in guion.CUES:
     i = int(round(st(c["id"]) * SR)); x = AUD[c["id"]]
     j = min(n, i + len(x)); voice[i:j] += x[: j - i]
+json.dump(dict(dur=DUR, esc=E), open(os.path.join(OUT, "escenas.json"), "w"))
+subprocess.run([sys.executable, "-I", os.path.join(B, "musica.py"), os.path.join(B, "audio", "musica.wav"),
+                os.path.join(OUT, "escenas.json")], check=True)
 mus = decode(os.path.join(B, "audio", "musica.wav"))
 mus = np.pad(mus, (0, max(0, n - len(mus))))[:n]
 mus *= 10 ** ((-16.0 - speech_rms_db(mus)) / 20)

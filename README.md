@@ -10,7 +10,7 @@ Apuntes, ejemplos y herramientas en Python para la asignatura de **Teoría de la
 | [`src/decision/`](src/decision/) | Implementación de criterios de decisión |
 | [`ejemplos/`](ejemplos/) | Problemas resueltos |
 | [`tests/`](tests/) | Pruebas automáticas |
-| [`video-neuroliderazgo/`](video-neuroliderazgo/) | Video final "Neuroliderazgo en el ámbito laboral" (5:00), subtítulos y archivos de producción |
+| [`video-neuroliderazgo/`](video-neuroliderazgo/) | Video final "Neuroliderazgo en el ámbito laboral" (3:45), subtítulos y archivos de producción |
 
 ## Temas
 

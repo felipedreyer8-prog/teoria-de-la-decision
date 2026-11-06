@@ -1,6 +1,8 @@
 # Video: Neuroliderazgo en el ámbito laboral
 
-**[Neuroliderazgo_en_el_ambito_laboral.mp4](Neuroliderazgo_en_el_ambito_laboral.mp4)**: 5:00 min · 1920×1080 (16:9) · español con acento rioplatense · subtítulos incluidos en la imagen y también en [`.srt`](Neuroliderazgo_en_el_ambito_laboral.srt).
+**[Neuroliderazgo_en_el_ambito_laboral.mp4](Neuroliderazgo_en_el_ambito_laboral.mp4)**: 3:45 min · 1920×1080 (16:9) · español con acento rioplatense · subtítulos incluidos en la imagen y también en [`.srt`](Neuroliderazgo_en_el_ambito_laboral.srt).
+
+La primera versión duraba 5:00 y está en el historial del repo. A pedido del grupo se aceleró a 3:45, con pausas más cortas entre las voces.
 
 Basado en el *Trabajo Final de Teoría de la Decisión* (Dra. Marina Santucci, Universidad Austral). Los personajes son siempre los mismos en todas las escenas: el jefe y Lucía, más dos compañeros de equipo.
 
@@ -8,14 +10,14 @@ Basado en el *Trabajo Final de Teoría de la Decisión* (Dra. Marina Santucci, U
 
 | Escena | Tiempo | Qué se ve |
 |---|---|---|
-| 1. Introducción | 0:00 – 0:33 | Título. Lucía trabaja en una presentación y el jefe se acerca. |
-| 2. Una respuesta que genera amenaza | 0:33 – 1:23 | El jefe señala el error delante de los compañeros. Lucía queda incómoda. |
-| 3. ¿Qué está pasando? | 1:23 – 2:21 | La escena se congela. Aparecen las cinco dimensiones de SCARF y las amenazas de la situación. |
-| 4. La misma situación, otra forma de liderar | 2:21 – 3:36 | Placa "Volvamos a intentarlo" y conversación en privado, con tono tranquilo. |
-| 5. Relación con la toma de decisiones | 3:36 – 4:26 | El jefe escucha, revisan juntos y Lucía corrige la presentación. Aparecen las palabras Atención, Percepción y Regulación emocional. |
-| 6. Cierre | 4:26 – 5:00 | El equipo trabaja en conjunto. Título y placa de referencias. |
+| 1. Introducción | 0:00 – 0:26 | Título. Lucía trabaja en una presentación y el jefe se acerca. |
+| 2. Una respuesta que genera amenaza | 0:26 – 1:01 | El jefe señala el error delante de los compañeros. Lucía queda incómoda. |
+| 3. ¿Qué está pasando? | 1:01 – 1:45 | La escena se congela. Aparecen las cinco dimensiones de SCARF y las amenazas de la situación. |
+| 4. La misma situación, otra forma de liderar | 1:45 – 2:39 | Placa "Volvamos a intentarlo" y conversación en privado, con tono tranquilo. |
+| 5. Relación con la toma de decisiones | 2:39 – 3:13 | El jefe escucha, revisan juntos y Lucía corrige la presentación. Aparecen las palabras Atención, Percepción y Regulación emocional. |
+| 6. Cierre | 3:13 – 3:45 | El equipo trabaja en conjunto. Título y placa de referencias. |
 
-Los tiempos del prompt sumaban 3:00. Se escalaron por 5/3 para llegar a 5 minutos, con pausas y transiciones más largas. No se agregó contenido: la narración y los diálogos son exactamente los del prompt.
+La duración de cada escena sale de lo que se dice en ella, con pausas naturales: unos 0,6 s entre diálogos y alrededor de 1 s entre frases del narrador. El aire extra va al título, la placa de transición, las apariciones de SCARF y el cierre. No se agregó contenido: la narración y los diálogos son exactamente los del prompt.
 
 ## Cómo se hizo
 
